@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import Login from './Login'
 import EditarProyecto from './EditarProyecto'
 import DetalleProyecto from './DetalleProyecto'
+import AdminPanel from './AdminPanel'
 
 const COLORES_FONDO = {
   FRIL:      { bg: 'bg-blue-100',   text: 'text-blue-700',   barra: 'bg-blue-500' },
@@ -21,10 +22,12 @@ const COLORES_ESTADO = {
 
 export default function App() {
   const [sesion, setSesion] = useState(null)
+  const [usuarioData, setUsuarioData] = useState(null)
   const [proyectos, setProyectos] = useState([])
   const [cargando, setCargando] = useState(true)
   const [filtro, setFiltro] = useState('Todos')
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [mostrarAdmin, setMostrarAdmin] = useState(false)
   const [proyectoEditando, setProyectoEditando] = useState(null)
   const [proyectoDetalle, setProyectoDetalle] = useState(null)
   const [form, setForm] = useState({
@@ -38,10 +41,22 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (sesion) cargarProyectos()
+    if (sesion) {
+      cargarProyectos()
+      cargarUsuarioData()
+    }
   }, [sesion])
 
   if (!sesion) return <Login />
+
+  async function cargarUsuarioData() {
+    const { data } = await supabase
+      .from('Usuarios')
+      .select('*')
+      .eq('id', sesion.user.id)
+      .single()
+    setUsuarioData(data)
+  }
 
   async function cargarProyectos() {
     const { data } = await supabase.from('Proyectos').select('*')
@@ -62,6 +77,7 @@ export default function App() {
     cargarProyectos()
   }
 
+  const esAdmin = usuarioData?.rol === 'admin'
   const fondos = ['Todos', 'FRIL', 'FRPD', 'Municipal', 'FNDR']
   const proyectosFiltrados = filtro === 'Todos' ? proyectos : proyectos.filter(p => p.fondo === filtro)
   const enEjecucion = proyectos.filter(p => p.estado === 'En ejecución').length
@@ -85,6 +101,15 @@ export default function App() {
               {f}
             </button>
           ))}
+          {esAdmin && (
+            <>
+              <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider px-2 mt-4 mb-1">Administración</p>
+              <button onClick={() => setMostrarAdmin(true)}
+                className="w-full text-left px-3 py-2 rounded-lg text-sm mb-0.5 transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
+                👥 Usuarios
+              </button>
+            </>
+          )}
         </nav>
         <div className="p-4 border-t border-slate-700">
           <div className="flex items-center gap-2">
@@ -92,8 +117,8 @@ export default function App() {
               {sesion.user.email[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-xs font-semibold truncate">{sesion.user.email}</p>
-              <p className="text-slate-400 text-xs">Usuario</p>
+              <p className="text-white text-xs font-semibold truncate">{usuarioData?.nombre || sesion.user.email}</p>
+              <p className="text-slate-400 text-xs">{usuarioData?.rol || 'Usuario'}</p>
             </div>
             <button onClick={() => supabase.auth.signOut()} className="text-slate-400 hover:text-white text-xs">
               Salir
@@ -116,8 +141,6 @@ export default function App() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-
-          {/* KPIs */}
           <div className="grid grid-cols-4 gap-4 mb-6">
             {[
               { label: 'Total proyectos', value: proyectos.length, color: 'border-blue-500' },
@@ -132,7 +155,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* FILTROS */}
           <div className="flex gap-2 mb-5 flex-wrap">
             {fondos.map(f => (
               <button key={f} onClick={() => setFiltro(f)}
@@ -142,7 +164,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* TARJETAS */}
           {cargando ? (
             <p className="text-gray-400 text-sm">Cargando proyectos...</p>
           ) : (
@@ -264,6 +285,11 @@ export default function App() {
           onCerrar={() => setProyectoDetalle(null)}
           onEditar={() => { setProyectoEditando(proyectoDetalle); setProyectoDetalle(null) }}
         />
+      )}
+
+      {/* PANEL ADMIN */}
+      {mostrarAdmin && (
+        <AdminPanel onCerrar={() => setMostrarAdmin(false)} />
       )}
 
     </div>
