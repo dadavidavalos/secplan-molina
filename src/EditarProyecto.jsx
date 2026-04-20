@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import FichaEvaluacion, { calcularViabilidad } from './FichaEvaluacion'
 import UbicacionMapa from './UbicacionMapa'
 
 const FONDOS = {
@@ -30,7 +31,6 @@ const ESTADO_COLORES = {
   Finalizado: "bg-indigo-100 text-indigo-800",
 }
 
-// Detecta si el fondo guardado pertenece a un financiador conocido
 function detectarFinanciador(fondo) {
   if (!fondo) return ""
   for (const [financiador, fondos] of Object.entries(FONDOS)) {
@@ -42,6 +42,24 @@ function detectarFinanciador(fondo) {
 export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar }) {
   const financiadorInicial = detectarFinanciador(proyecto.fondo || "")
   const esFondoOtro = financiadorInicial === "Otro" && proyecto.fondo && proyecto.fondo !== "__otro__"
+
+  // Ficha pre-rellenada con datos guardados del proyecto
+  const [ficha, setFicha] = useState({
+    tipo_organismo: proyecto.ficha_organismo || "",
+    iniciativas_previas: proyecto.ficha_iniciativas_previas ?? null,
+    cbr: proyecto.ficha_cbr ?? null,
+    rol_avaluo: proyecto.ficha_rol_avaluo ?? null,
+    propiedad_municipal: proyecto.ficha_propiedad_municipal ?? null,
+    comodato: proyecto.ficha_comodato ?? null,
+    permiso_edificacion: proyecto.ficha_permiso_edificacion ?? null,
+    tipo_terreno: proyecto.ficha_tipo_terreno || "",
+    ifc: proyecto.ficha_ifc ?? null,
+    zonificacion: proyecto.ficha_zonificacion ?? null,
+    pladeco: proyecto.ficha_pladeco ?? null,
+    nombre_proyecto: proyecto.nombre || "",
+    responsable: proyecto.encargado || "",
+    fecha: new Date().toLocaleDateString("es-CL"),
+  })
 
   const [form, setForm] = useState({
     tipo_iniciativa: proyecto.tipo_iniciativa || "Proyecto",
@@ -71,6 +89,7 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
 
   const estadoActual = ESTADOS.find((e) => e.label === form.estado)
   const pctAvance = estadoActual?.pct ?? proyecto.avance ?? 0
+  const fichaViable = calcularViabilidad(ficha)
 
   async function guardar() {
     if (!form.nombre.trim()) { setError("El nombre del proyecto es obligatorio."); return }
@@ -98,10 +117,10 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
       prioridad: form.prioridad,
       link_drive: form.link_drive,
       encargado: form.encargado,
+      ficha_viable: fichaViable,
     }
 
-    // Comparar con valores originales para registrar historial
-    const camposComparar = {
+    const camposOriginales = {
       tipo_iniciativa: proyecto.tipo_iniciativa,
       nombre: proyecto.nombre,
       descripcion: proyecto.descripcion,
@@ -119,12 +138,13 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
       prioridad: proyecto.prioridad,
       link_drive: proyecto.link_drive,
       encargado: proyecto.encargado,
+      ficha_viable: proyecto.ficha_viable,
     }
 
     const registros = []
-    for (const [campo, valorAnterior] of Object.entries(camposComparar)) {
-      const anterior = String(valorAnterior || "")
-      const nuevo = String(datosNuevos[campo] || "")
+    for (const [campo, valorAnterior] of Object.entries(camposOriginales)) {
+      const anterior = String(valorAnterior ?? "")
+      const nuevo = String(datosNuevos[campo] ?? "")
       if (anterior !== nuevo) {
         registros.push({
           proyecto_id: proyecto.id,
@@ -153,30 +173,39 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Editar proyecto</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Paso {paso} de 2</p>
+            <p className="text-xs text-gray-400 mt-0.5">Paso {paso} de 3</p>
           </div>
           <button onClick={onCerrar} className="text-gray-400 hover:text-gray-600 text-xl font-light leading-none">✕</button>
         </div>
 
-        {/* Barra pasos */}
+        {/* Barra de pasos */}
         <div className="px-6 pt-4">
           <div className="flex gap-2">
-            {[1, 2].map((p) => (
+            {[1, 2, 3].map((p) => (
               <div key={p} className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${p <= paso ? "bg-amber-400" : "bg-gray-100"}`} />
             ))}
           </div>
           <div className="flex mt-1">
-            {["Datos del proyecto", "Financiamiento"].map((l) => (
+            {["Ficha evaluación", "Datos del proyecto", "Financiamiento"].map((l) => (
               <span key={l} className="flex-1 text-center text-xs text-gray-400">{l}</span>
             ))}
           </div>
         </div>
 
-        {/* Contenido */}
+        {/* Contenido scrolleable */}
         <div className="overflow-y-auto flex-1 px-6 py-5">
 
-          {/* ─── PASO 1: DATOS ─── */}
+          {/* ─── PASO 1: FICHA DE EVALUACIÓN ─── */}
           {paso === 1 && (
+            <FichaEvaluacion
+              ficha={ficha}
+              onChange={(fn) => setFicha((prev) => fn(prev))}
+              nombreProyecto={form.nombre}
+            />
+          )}
+
+          {/* ─── PASO 2: DATOS DEL PROYECTO ─── */}
+          {paso === 2 && (
             <div className="space-y-4">
 
               <Campo label="Tipo de iniciativa">
@@ -285,8 +314,8 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
             </div>
           )}
 
-          {/* ─── PASO 2: FINANCIAMIENTO ─── */}
-          {paso === 2 && (
+          {/* ─── PASO 3: FINANCIAMIENTO ─── */}
+          {paso === 3 && (
             <div className="space-y-5">
 
               <Campo label="Moneda">
@@ -355,7 +384,7 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
             className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
             {paso === 1 ? "Cancelar" : "← Anterior"}
           </button>
-          {paso < 2 ? (
+          {paso < 3 ? (
             <button onClick={() => setPaso((p) => p + 1)}
               className="px-6 py-2 text-sm font-medium bg-amber-400 hover:bg-amber-500 text-white rounded-xl transition-all shadow-sm">
               Siguiente →

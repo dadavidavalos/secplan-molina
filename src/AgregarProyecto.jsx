@@ -108,6 +108,17 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
       link_drive: proyecto.link_drive,
       encargado: proyecto.encargado,
       ficha_viable: fichaViable,
+      ficha_organismo: ficha.tipo_organismo,
+      ficha_iniciativas_previas: ficha.iniciativas_previas,
+      ficha_cbr: ficha.cbr,
+      ficha_rol_avaluo: ficha.rol_avaluo,
+      ficha_propiedad_municipal: ficha.propiedad_municipal,
+      ficha_comodato: ficha.comodato,
+      ficha_permiso_edificacion: ficha.permiso_edificacion,
+      ficha_tipo_terreno: ficha.tipo_terreno,
+      ficha_ifc: ficha.ifc,
+      ficha_zonificacion: ficha.zonificacion,
+      ficha_pladeco: ficha.pladeco,
     }]);
 
     setGuardando(false);
