@@ -19,91 +19,152 @@ export function calcularViabilidad(f) {
 
 function descargarWord(ficha) {
   const viable = calcularViabilidad(ficha);
-  const si = (v) => v === true ? "☑ Sí   ☐ No" : v === false ? "☐ Sí   ☑ No" : "☐ Sí   ☐ No";
-  const organismos = { SUBDERE: "SUBDERE", GORE: "Gobierno Regional", Municipal: "Municipal" };
+
+  // Checkbox marcado o vacío según valor booleano
+  const chk = (v) => v === true ? "&#9746;" : "&#9744;";   // ☒ o ☐
+  const siNo = (v) => `${chk(v === true)} <b>Sí</b> &nbsp; ${chk(v === false)} <b>No</b>`;
+  const urbRur = (t) =>
+    `${chk(t === "urbano")} <b>Urbano</b> &nbsp; ${chk(t === "rural")} <b>Rural</b>`;
+
+  // Organismos: el seleccionado va subrayado y en negrita
+  const orgSpan = (key, label) =>
+    ficha.tipo_organismo === key
+      ? `<span style="text-decoration:underline;font-weight:bold">${label}</span>`
+      : `<span>${label}</span>`;
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
-  body{font-family:Arial,sans-serif;font-size:11pt;margin:2cm;color:#111}
-  .header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px}
-  img{height:44px;object-fit:contain}
-  h1{text-align:center;font-size:14pt;text-decoration:underline;margin:8px 0 2px}
-  .sub{text-align:center;font-size:9.5pt;font-style:italic;text-decoration:underline;margin-bottom:10px}
-  .org-row{display:flex;justify-content:center;gap:32px;font-weight:bold;font-size:12pt;margin-bottom:10px}
-  .org-sel{border-bottom:2px solid #111;padding-bottom:1px}
-  .seccion{font-weight:bold;font-size:11pt;margin:14px 0 6px;display:flex;align-items:center;gap:6px}
-  .bullet{width:12px;height:12px;background:#111;border-radius:50%;display:inline-block}
-  .fila{display:flex;justify-content:space-between;align-items:flex-start;margin:5px 0;gap:12px}
-  .pregunta{flex:1}
-  .resp{white-space:nowrap;font-weight:bold}
-  .nota{font-size:8.5pt;color:#555;font-style:italic;margin:3px 0 3px 12px}
-  .sub-bloque{margin-left:18px;border-left:2px solid #ccc;padding-left:10px}
-  .resultado{margin-top:18px;font-weight:bold;border:2px solid #333;padding:8px 12px;text-align:center;font-size:11pt}
-  .pie{margin-top:18px;border-top:1px solid #aaa;padding-top:10px;display:flex;gap:32px}
-  .campo{flex:1;border-bottom:1px solid #333;padding-bottom:1px}
-  .campo-label{font-size:8pt;color:#666}
-</style></head><body>
-<div class="header">
-  <img src="/logo-molina.png">
-  <div style="text-align:right;font-size:9pt;color:#555">${ficha.fecha || ""}</div>
-</div>
+  body { font-family: Arial, sans-serif; font-size: 11pt; margin: 2cm 2.5cm; color: #000; }
+  .fecha-top { text-align: right; font-size: 10pt; margin-bottom: 4px; }
+  .linea-top { border-top: 2px solid #000; margin-bottom: 18px; }
+  h1 { text-align: center; font-size: 14pt; font-weight: bold; text-decoration: underline; margin: 0 0 4px; letter-spacing: 1px; }
+  .subtitulo { text-align: center; font-size: 9.5pt; font-style: italic; text-decoration: underline; margin-bottom: 14px; }
+  .org-row { display: flex; justify-content: flex-start; gap: 32px; font-size: 11pt; font-weight: bold; margin-bottom: 18px; }
+  .seccion { font-weight: bold; font-size: 11pt; margin: 16px 0 8px; }
+  .fila { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 0; gap: 16px; }
+  .pregunta { flex: 1; }
+  .resp { white-space: nowrap; }
+  .nota { font-size: 8.5pt; font-style: italic; color: #333; margin: 4px 0 4px 20px; }
+  .sub-bloque { margin-left: 24px; margin-top: 4px; margin-bottom: 4px; }
+  .resultado { margin-top: 24px; border: 2px solid #000; padding: 10px 16px; text-align: center; font-weight: bold; font-size: 11pt; }
+  .pie { margin-top: 32px; }
+  .pie-campo { margin-bottom: 28px; }
+  .pie-label { font-size: 9pt; color: #444; margin-bottom: 4px; }
+  .pie-linea { border-bottom: 1px solid #000; min-width: 260px; display: inline-block; padding-bottom: 2px; font-size: 11pt; }
+</style>
+</head><body>
+
+<div class="fecha-top">${ficha.fecha || ""}</div>
+<div class="linea-top"></div>
+
 <h1>FICHA EVALUACIÓN INICIATIVA</h1>
-<div class="sub">Se deberá evaluar cualquier iniciativa a proyecto de acuerdo con lo siguiente:</div>
+<div class="subtitulo">Se deberá evaluar cualquier iniciativa a proyecto de acuerdo con lo siguiente:</div>
+
 <div class="org-row">
-  <span ${ficha.tipo_organismo === "SUBDERE" ? 'class="org-sel"' : ""}>SUBDERE</span>
-  <span ${ficha.tipo_organismo === "GORE" ? 'class="org-sel"' : ""}>GOBIERNO REGIONAL</span>
-  <span ${ficha.tipo_organismo === "Municipal" ? 'class="org-sel"' : ""}>MUNICIPAL</span>
+  ${orgSpan("SUBDERE", "SUBDERE")}
+  ${orgSpan("GORE", "GOBIERNO REGIONAL")}
+  ${orgSpan("Municipal", "MUNICIPAL")}
 </div>
 
 ${ficha.tipo_organismo === "GORE" ? `
-<div style="background:#f0f4ff;border:1px solid #b0c4f0;padding:8px 12px;margin-bottom:10px;font-size:9.5pt;font-style:italic">
+<p style="font-style:italic;font-size:9.5pt;margin-bottom:8px">
   (Si la iniciativa es al Gobierno Regional responder lo siguiente)
-</div>
+</p>
 <div class="fila">
   <span class="pregunta">En el terreno a presentar proyecto se han llevado a cabo iniciativas dentro de los últimos 2 años</span>
-  <span class="resp">${si(ficha.iniciativas_previas)}</span>
+  <span class="resp">${siNo(ficha.iniciativas_previas)}</span>
 </div>
-${ficha.iniciativas_previas === true ? `<div class="nota">Si la respuesta anterior es Sí se deberá evaluar la iniciativa y cumplir con las disposiciones de plazo para la presentación y esperar el plazo determinado. Si es No se puede continuar.</div>` : ""}
+${ficha.iniciativas_previas === true
+  ? `<p class="nota">Si la respuesta anterior es Sí se deberá evaluar la iniciativa y cumplir con las disposiciones de plazo para la presentación y esperar el plazo determinado. Si es No se puede continuar.</p>`
+  : ""}
+<hr style="border:none;border-top:1px solid #ccc;margin:12px 0">
 ` : ""}
 
-<div class="seccion"><span class="bullet"></span> Legalidad del terreno:</div>
-<div class="fila"><span class="pregunta">1.- Terreno cuenta con inscripción en CBR</span><span class="resp">${si(ficha.cbr)}</span></div>
-<div class="fila"><span class="pregunta">2.- Terreno cuenta con Rol de avalúo vigente</span><span class="resp">${si(ficha.rol_avaluo)}</span></div>
-<div class="fila"><span class="pregunta">3.- Terreno es de propiedad Municipal</span><span class="resp">${si(ficha.propiedad_municipal)}</span></div>
+<div class="seccion">Legalidad del terreno:</div>
+
+<div class="fila">
+  <span class="pregunta">1.- Terreno cuenta con inscripción en CBR</span>
+  <span class="resp">${siNo(ficha.cbr)}</span>
+</div>
+<div class="fila">
+  <span class="pregunta">2.- Terreno cuenta con Rol de avalúo vigente</span>
+  <span class="resp">${siNo(ficha.rol_avaluo)}</span>
+</div>
+<div class="fila">
+  <span class="pregunta">3.- Terreno es de propiedad Municipal</span>
+  <span class="resp">${siNo(ficha.propiedad_municipal)}</span>
+</div>
+
 ${ficha.propiedad_municipal === false ? `
 <div class="sub-bloque">
-  <div class="fila"><span class="pregunta">3.1 Si la respuesta es No, ¿el propietario está dispuesto a efectuar comodato o usufructo?</span><span class="resp">${si(ficha.comodato)}</span></div>
+  <div class="fila">
+    <span class="pregunta">3.1 Si la respuesta es No, ¿el propietario está dispuesto a efectuar comodato o usufructo?</span>
+    <span class="resp">${siNo(ficha.comodato)}</span>
+  </div>
 </div>` : ""}
-<div class="nota">Si cualquiera de las respuestas anteriores es No, se deberá evaluar la iniciativa y cumplir con las disposiciones anteriores para comenzar el diseño o la evaluación.</div>
 
-<div class="seccion"><span class="bullet"></span> Cumplimiento de normas:</div>
-<div class="fila"><span class="pregunta">1.- El proyecto deberá contar con permiso de edificación</span><span class="resp">${si(ficha.permiso_edificacion)}</span></div>
-${ficha.permiso_edificacion === false ? `<div class="nota">Si la respuesta es No se pasa al punto 2.</div>` : ""}
+<p class="nota">Si cualquiera de las respuestas anteriores es No, se deberá evaluar la iniciativa y cumplir con las disposiciones anteriores para comenzar el diseño o la evaluación.</p>
+
+<div class="seccion">Cumplimiento de normas:</div>
+
+<div class="fila">
+  <span class="pregunta">1.- El proyecto deberá contar con permiso de edificación</span>
+  <span class="resp">${siNo(ficha.permiso_edificacion)}</span>
+</div>
+
+${ficha.permiso_edificacion === false
+  ? `<p class="nota">Si la respuesta es No se pasa al punto 2.</p>`
+  : ""}
+
 ${ficha.permiso_edificacion === true ? `
 <div class="sub-bloque">
-  <div class="fila"><span class="pregunta">El terreno es:</span>
-  <span class="resp">${ficha.tipo_terreno === "urbano" ? "☑ Urbano  ☐ Rural" : ficha.tipo_terreno === "rural" ? "☐ Urbano  ☑ Rural" : "☐ Urbano  ☐ Rural"}</span></div>
+  <div class="fila">
+    <span class="pregunta">El terreno es:</span>
+    <span class="resp">${urbRur(ficha.tipo_terreno)}</span>
+  </div>
   ${ficha.tipo_terreno === "rural" ? `
-    <div class="fila"><span class="pregunta">Si es Rural, ¿cuenta con IFC?</span><span class="resp">${si(ficha.ifc)}</span></div>
-    ${ficha.ifc === false ? `<div class="nota">Si no cuenta con IFC se debe tramitar antes de presentar la iniciativa.</div>` : ""}
+  <div class="fila">
+    <span class="pregunta">Si es Rural, ¿cuenta con IFC?</span>
+    <span class="resp">${siNo(ficha.ifc)}</span>
+  </div>
+  ${ficha.ifc === false ? `<p class="nota">Si no cuenta con IFC se debe tramitar antes de presentar la iniciativa.</p>` : ""}
   ` : ""}
   ${ficha.tipo_terreno === "urbano" ? `
-    <div class="fila"><span class="pregunta">Si el terreno es urbano, ¿cumple con la zonificación para el diseño?</span><span class="resp">${si(ficha.zonificacion)}</span></div>
+  <div class="fila">
+    <span class="pregunta">Si el terreno es urbano, ¿cumple con la zonificación para el diseño?</span>
+    <span class="resp">${siNo(ficha.zonificacion)}</span>
+  </div>
   ` : ""}
 </div>` : ""}
-<div class="fila"><span class="pregunta">2.- El proyecto se encuentra dentro de las iniciativas de financiamiento y dentro del Pladeco</span><span class="resp">${si(ficha.pladeco)}</span></div>
 
-<div class="resultado">${
-  viable === true ? "✅ Si se llega a la última respuesta con un Sí, la iniciativa es VIABLE para estudio." :
-  viable === false ? "❌ La iniciativa NO cumple los requisitos actuales para continuar." :
-  "Si se llega a la última respuesta con un Sí, la iniciativa es viable para estudio."
-}</div>
+<div class="fila">
+  <span class="pregunta">2.- El proyecto se encuentra dentro de las iniciativas de financiamiento y dentro del Pladeco</span>
+  <span class="resp">${siNo(ficha.pladeco)}</span>
+</div>
+
+<div class="resultado">
+  ${viable === true
+    ? "Si se llega a la última respuesta con un Sí, la iniciativa es viable para estudio."
+    : viable === false
+    ? "La iniciativa NO cumple los requisitos actuales para continuar."
+    : "Si se llega a la última respuesta con un Sí, la iniciativa es viable para estudio."}
+</div>
 
 <div class="pie">
-  <div class="campo"><div class="campo-label">Proyecto / Iniciativa</div>${ficha.nombre_proyecto || "_________________________"}</div>
-  <div class="campo"><div class="campo-label">Responsable</div>${ficha.responsable || "_________________________"}</div>
-  <div class="campo"><div class="campo-label">Fecha</div>${ficha.fecha || "_______________"}</div>
+  <div class="pie-campo">
+    <div class="pie-label">Proyecto / Iniciativa</div>
+    <div class="pie-linea">${ficha.nombre_proyecto || ""}</div>
+  </div>
+  <div class="pie-campo">
+    <div class="pie-label">Responsable</div>
+    <div class="pie-linea">${ficha.responsable || ""}</div>
+  </div>
+  <div class="pie-campo">
+    <div class="pie-label">Fecha</div>
+    <div class="pie-linea">${ficha.fecha || ""}</div>
+  </div>
 </div>
+
 </body></html>`;
 
   const blob = new Blob([html], { type: "application/msword;charset=utf-8" });
