@@ -385,7 +385,7 @@ function RadioDoc({ label, value, onChange }) {
       <div className="flex gap-2 flex-shrink-0">
         {[["Sí", true], ["No", false]].map(([l, v]) => (
           <button key={l} onClick={() => onChange(v)}
-            className={`w-12 py-1 rounded-lg text-sm font-medium border transition-all ${
+            className={`w-12 py-1 rounded-lg text-sm font-medium border transition-all $ {
               value === v
                 ? v ? "bg-green-500 border-green-500 text-white" : "bg-red-500 border-red-500 text-white"
                 : "border-gray-300 text-gray-500 hover:border-gray-500"
