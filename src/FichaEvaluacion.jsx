@@ -151,7 +151,7 @@ function descargarWord(ficha) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = \`Ficha_Evaluacion_\${(ficha.nombre_proyecto || "Iniciativa").replace(/\s+/g, "_")}.docx\`;
+    a.download = \`Ficha_Evaluacion_\$ {(ficha.nombre_proyecto || "Iniciativa").replace(/\s+/g, "_")}.docx\`;
     a.click();
     URL.revokeObjectURL(url);
   });
@@ -216,7 +216,7 @@ export default function FichaEvaluacion({ ficha: fichaExterna, onChange, nombreP
               <button
                 key={key}
                 onClick={() => set("tipo_organismo", key)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-bold border-2 transition-all ${
+                className={`px-4 py-1.5 rounded-lg text-sm font-bold border-2 transition-all $ {
                   f.tipo_organismo === key
                     ? "bg-slate-900 border-slate-900 text-white"
                     : "border-gray-300 text-gray-600 hover:border-slate-500"
@@ -298,7 +298,7 @@ export default function FichaEvaluacion({ ficha: fichaExterna, onChange, nombreP
                     <div className="flex gap-3">
                       {["Urbano", "Rural"].map((t) => (
                         <button key={t} onClick={() => set("tipo_terreno", t.toLowerCase())}
-                          className={`px-5 py-1.5 rounded-lg text-sm font-medium border-2 transition-all ${
+                          className={`px-5 py-1.5 rounded-lg text-sm font-medium border-2 transition-all $ {
                             f.tipo_terreno === t.toLowerCase()
                               ? "bg-amber-400 border-amber-400 text-white"
                               : "border-gray-200 text-gray-600 hover:border-amber-300"
