@@ -76,14 +76,24 @@ function descargarWord(ficha) {
     .then(zip => zip.file("word/document.xml").async("string").then(xml => {
       let modified = xml
 
-      // Marcar cada rectángulo seleccionado rellenándolo de negro
+      // Para cada rect a marcar: cambiar filled="f" por filled="t" fillcolor="#000000"
+      // El tag v:rect tiene: filled="f" strokecolor=... como atributos al final
+      // Solo necesitamos cambiar filled="f" en el rect que tiene el anchorId correcto
       for (const idx of toFill) {
         const aid = ANCHOR_IDS[idx]
-        // Buscar el v:rect con este anchorId y agregar filled + fillcolor
-        modified = modified.replace(
-          new RegExp('(<v:rect\\b[^>]*w14:anchorId="' + aid + '"[^>]*)(/>|>)', 'g'),
-          '$1 filled="t" fillcolor="#000000"$2'
-        )
+        // Usar split/join para evitar problemas con RegExp y caracteres especiales
+        const searchStr = 'w14:anchorId="' + aid + '"'
+        if (modified.includes(searchStr)) {
+          // Encontrar posición del anchorId en el XML
+          const pos = modified.indexOf(searchStr)
+          // Buscar filled="f" dentro de los próximos 2000 chars (dentro del mismo tag)
+          const tagEnd = modified.indexOf('/>', pos)
+          const tagChunk = modified.substring(pos, tagEnd)
+          if (tagChunk.includes('filled="f"')) {
+            const fixedChunk = tagChunk.replace('filled="f"', 'filled="t" fillcolor="#000000"')
+            modified = modified.substring(0, pos) + fixedChunk + modified.substring(tagEnd)
+          }
+        }
       }
 
       zip.file("word/document.xml", modified)
