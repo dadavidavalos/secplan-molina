@@ -118,6 +118,17 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
       link_drive: form.link_drive,
       encargado: form.encargado,
       ficha_viable: fichaViable,
+      ficha_organismo: ficha.tipo_organismo,
+      ficha_iniciativas_previas: ficha.iniciativas_previas,
+      ficha_cbr: ficha.cbr,
+      ficha_rol_avaluo: ficha.rol_avaluo,
+      ficha_propiedad_municipal: ficha.propiedad_municipal,
+      ficha_comodato: ficha.comodato,
+      ficha_permiso_edificacion: ficha.permiso_edificacion,
+      ficha_tipo_terreno: ficha.tipo_terreno,
+      ficha_ifc: ficha.ifc,
+      ficha_zonificacion: ficha.zonificacion,
+      ficha_pladeco: ficha.pladeco,
     }
 
     const camposOriginales = {
@@ -139,6 +150,17 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
       link_drive: proyecto.link_drive,
       encargado: proyecto.encargado,
       ficha_viable: proyecto.ficha_viable,
+      ficha_organismo: proyecto.ficha_organismo,
+      ficha_iniciativas_previas: proyecto.ficha_iniciativas_previas,
+      ficha_cbr: proyecto.ficha_cbr,
+      ficha_rol_avaluo: proyecto.ficha_rol_avaluo,
+      ficha_propiedad_municipal: proyecto.ficha_propiedad_municipal,
+      ficha_comodato: proyecto.ficha_comodato,
+      ficha_permiso_edificacion: proyecto.ficha_permiso_edificacion,
+      ficha_tipo_terreno: proyecto.ficha_tipo_terreno,
+      ficha_ifc: proyecto.ficha_ifc,
+      ficha_zonificacion: proyecto.ficha_zonificacion,
+      ficha_pladeco: proyecto.ficha_pladeco,
     }
 
     const registros = []
