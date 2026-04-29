@@ -81,17 +81,20 @@ function descargarWord(ficha) {
       // Solo necesitamos cambiar filled="f" en el rect que tiene el anchorId correcto
       for (const idx of toFill) {
         const aid = ANCHOR_IDS[idx]
-        // Usar split/join para evitar problemas con RegExp y caracteres especiales
         const searchStr = 'w14:anchorId="' + aid + '"'
         if (modified.includes(searchStr)) {
           // Encontrar posición del anchorId en el XML
-          const pos = modified.indexOf(searchStr)
-          // Buscar filled="f" dentro de los próximos 2000 chars (dentro del mismo tag)
-          const tagEnd = modified.indexOf('/>', pos)
-          const tagChunk = modified.substring(pos, tagEnd)
-          if (tagChunk.includes('filled="f"')) {
-            const fixedChunk = tagChunk.replace('filled="f"', 'filled="t" fillcolor="#000000"')
-            modified = modified.substring(0, pos) + fixedChunk + modified.substring(tagEnd)
+          const anchorPos = modified.indexOf(searchStr)
+          // Retroceder hasta el inicio del tag <v:rect
+          const tagStart = modified.lastIndexOf('<v:rect', anchorPos)
+          // Encontrar el cierre del tag />
+          const tagEnd = modified.indexOf('/>', anchorPos) + 2
+          // Extraer el tag completo
+          const fullTag = modified.substring(tagStart, tagEnd)
+          // Reemplazar filled="f" por filled="t" con color negro
+          if (fullTag.includes('filled="f"')) {
+            const fixedTag = fullTag.replace('filled="f"', 'filled="t" fillcolor="#000000"')
+            modified = modified.substring(0, tagStart) + fixedTag + modified.substring(tagEnd)
           }
         }
       }
