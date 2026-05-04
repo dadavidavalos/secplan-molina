@@ -45,30 +45,33 @@ function descargarWord(ficha) {
     "53543432", // 22 pladeco No
   ]
 
+  // MAPA CORREGIDO: verificado contra el XML real del template
+  // Índices pares/impares NO corresponden a Si/No — depende del margin-left de cada rect
+  // Izquierda (margin < 400pt) = Si, Derecha (margin > 400pt) = No
   const toFill = new Set()
-  if (ficha.tipo_organismo === "SUBDERE")  toFill.add(0)
-  if (ficha.tipo_organismo === "GORE")     toFill.add(1)
-  if (ficha.tipo_organismo === "Municipal") toFill.add(2)
-  if (ficha.iniciativas_previas === true)  toFill.add(3)
-  if (ficha.iniciativas_previas === false) toFill.add(4)
-  if (ficha.cbr === true)                  toFill.add(5)
-  if (ficha.cbr === false)                 toFill.add(6)
-  if (ficha.rol_avaluo === true)           toFill.add(7)
-  if (ficha.rol_avaluo === false)          toFill.add(8)
-  if (ficha.propiedad_municipal === true)  toFill.add(9)
-  if (ficha.propiedad_municipal === false) toFill.add(10)
-  if (ficha.comodato === true)             toFill.add(11)
-  if (ficha.comodato === false)            toFill.add(12)
-  if (ficha.permiso_edificacion === true)  toFill.add(13)
-  if (ficha.permiso_edificacion === false) toFill.add(14)
-  if (ficha.tipo_terreno === "urbano")     toFill.add(15)
-  if (ficha.tipo_terreno === "rural")      toFill.add(16)
-  if (ficha.ifc === true)                  toFill.add(17)
-  if (ficha.ifc === false)                 toFill.add(18)
-  if (ficha.zonificacion === true)         toFill.add(19)
-  if (ficha.zonificacion === false)        toFill.add(20)
-  if (ficha.pladeco === true)              toFill.add(21)
-  if (ficha.pladeco === false)             toFill.add(22)
+  if (ficha.tipo_organismo === "SUBDERE")   toFill.add(0)   // margin=293
+  if (ficha.tipo_organismo === "GORE")      toFill.add(1)   // margin=445
+  if (ficha.tipo_organismo === "Municipal") toFill.add(2)   // margin=75
+  if (ficha.iniciativas_previas === true)   toFill.add(4)   // Si margin=369
+  if (ficha.iniciativas_previas === false)  toFill.add(3)   // No margin=445
+  if (ficha.cbr === true)                   toFill.add(6)   // Si margin=377
+  if (ficha.cbr === false)                  toFill.add(5)   // No margin=445
+  if (ficha.rol_avaluo === true)            toFill.add(8)   // Si margin=377
+  if (ficha.rol_avaluo === false)           toFill.add(7)   // No margin=445
+  if (ficha.propiedad_municipal === true)   toFill.add(10)  // Si margin=377
+  if (ficha.propiedad_municipal === false)  toFill.add(9)   // No margin=445
+  if (ficha.comodato === true)              toFill.add(12)  // Si margin=377
+  if (ficha.comodato === false)             toFill.add(11)  // No margin=445
+  if (ficha.permiso_edificacion === true)   toFill.add(14)  // Si margin=377
+  if (ficha.permiso_edificacion === false)  toFill.add(13)  // No margin=445
+  if (ficha.tipo_terreno === "urbano")      toFill.add(15)  // Urbano margin=286
+  if (ficha.tipo_terreno === "rural")       toFill.add(16)  // Rural margin=188
+  if (ficha.ifc === true)                   toFill.add(17)  // Si margin=302
+  if (ficha.ifc === false)                  toFill.add(18)  // No margin=377
+  if (ficha.zonificacion === true)          toFill.add(20)  // Si margin=377
+  if (ficha.zonificacion === false)         toFill.add(19)  // No margin=446
+  if (ficha.pladeco === true)               toFill.add(22)  // Si margin=379
+  if (ficha.pladeco === false)              toFill.add(21)  // No margin=446
 
   fetch("/ficha_template.docx")
     .then(res => res.arrayBuffer())
@@ -76,10 +79,10 @@ function descargarWord(ficha) {
     .then(zip => zip.file("word/document.xml").async("string").then(xml => {
       let modified = xml
 
-      // Cada casilla tiene DOS representaciones dentro de mc:AlternateContent:
-      // 1. mc:Choice > w:drawing > wps:wsp  — la que usa Word moderno (tiene <a:noFill/>)
-      // 2. mc:Fallback > w:pict > v:rect     — fallback VML (tiene filled="f")
-      // Hay que modificar AMBAS para que Word y LibreOffice muestren el relleno
+      // Cada casilla tiene DOS representaciones en mc:AlternateContent:
+      // 1. mc:Choice > wps:wsp — Word moderno (tiene <a:noFill/>)
+      // 2. mc:Fallback > v:rect — VML fallback (tiene filled="f")
+      // Modificamos ambas para que funcione en Word y LibreOffice
       const ALT_CLOSE = '</mc:AlternateContent>'
       for (const idx of toFill) {
         const aid = ANCHOR_IDS[idx]
@@ -89,9 +92,7 @@ function descargarWord(ficha) {
           const altStart = modified.lastIndexOf('<mc:AlternateContent>', vmlPos)
           const altEnd = modified.indexOf(ALT_CLOSE, vmlPos) + ALT_CLOSE.length
           let altBlock = modified.substring(altStart, altEnd)
-          // 1. Word moderno: reemplazar <a:noFill/> con relleno sólido negro
           altBlock = altBlock.replace('<a:noFill/>', '<a:solidFill><a:srgbClr val="000000"/></a:solidFill>')
-          // 2. VML fallback: marcar el v:rect con filled="t"
           altBlock = altBlock.replace('filled="f"', 'filled="t" fillcolor="#000000"')
           modified = modified.substring(0, altStart) + altBlock + modified.substring(altEnd)
         }
