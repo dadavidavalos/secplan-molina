@@ -66,6 +66,7 @@ const PROYECTO_INICIAL = {
   prioridad: "Media",
   link_drive: "",
   encargado: "",
+  imagen_url: "",
 };
 
 export default function AgregarProyecto({ onClose, onGuardado }) {
@@ -74,6 +75,7 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
   const [paso, setPaso] = useState(1);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [subiendo, setSubiendo] = useState(false);
 
   const setP = (k, v) => setProyecto((f) => ({ ...f, [k]: v }));
 
@@ -81,11 +83,29 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
   const pctAvance = estadoActual?.pct ?? 0;
   const fichaViable = calcularViabilidad(ficha);
 
+
+  const uploadImagen = async (file) => {
+    if (!file) return null
+    setSubiendo(true)
+    const ext = file.name.split('.').pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await supabase.storage.from('proyectos').upload(fileName, file, { upsert: true })
+    setSubiendo(false)
+    if (error) { setError('Error subiendo imagen: ' + error.message); return null }
+    const { data } = supabase.storage.from('proyectos').getPublicUrl(fileName)
+    return data.publicUrl
+  }
+
   const guardar = async () => {
     if (!proyecto.nombre.trim()) { setError("El nombre del proyecto es obligatorio."); return; }
     if (!proyecto.estado) { setError("Selecciona un estado para el proyecto."); return; }
     setGuardando(true);
     setError("");
+    let imagenFinal = proyecto.imagen_url || ""
+    if (proyecto._imagenFile) {
+      const url = await uploadImagen(proyecto._imagenFile)
+      if (url) imagenFinal = url
+    }
 
     const tipoFondoFinal = proyecto.tipo_fondo === "__otro__" ? proyecto.tipo_fondo_otro : proyecto.tipo_fondo;
 
@@ -119,6 +139,7 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
       ficha_ifc: ficha.ifc,
       ficha_zonificacion: ficha.zonificacion,
       ficha_pladeco: ficha.pladeco,
+      imagen_url: imagenFinal,
     }]);
 
     setGuardando(false);
@@ -266,6 +287,41 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
 
               <Campo label="Encargado del proyecto">
                 <input className="input" placeholder="Nombre del encargado o responsable" value={proyecto.encargado} onChange={(e) => setP("encargado", e.target.value)} />
+              </Campo>
+
+
+              <Campo label="Foto del proyecto (opcional)">
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-blue-300 transition-colors">
+                  {proyecto.imagen_url || proyecto._imagenPreview ? (
+                    <div className="relative">
+                      <img src={proyecto._imagenPreview || proyecto.imagen_url} alt="preview"
+                        className="w-full h-36 object-cover rounded-lg mb-2" />
+                      <button type="button"
+                        onClick={() => setProyecto(p => ({ ...p, imagen_url: "", _imagenFile: null, _imagenPreview: null }))}
+                        className="text-xs text-red-500 hover:text-red-700">✕ Quitar imagen</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-3xl mb-2">🖼️</div>
+                      <p className="text-xs text-gray-400 mb-2">Sube una foto del proyecto</p>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" id="img-agregar"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files[0]
+                      if (!file) return
+                      setProyecto(p => ({
+                        ...p,
+                        _imagenFile: file,
+                        _imagenPreview: URL.createObjectURL(file)
+                      }))
+                    }} />
+                  <label htmlFor="img-agregar"
+                    className="inline-block mt-1 px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-600 cursor-pointer transition-colors">
+                    {subiendo ? "Subiendo..." : "Seleccionar imagen"}
+                  </label>
+                </div>
               </Campo>
 
               <Campo label="Link al Drive del proyecto">

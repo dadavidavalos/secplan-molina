@@ -79,11 +79,15 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
     prioridad: proyecto.prioridad || "Media",
     link_drive: proyecto.link_drive || "",
     encargado: proyecto.encargado || "",
+    imagen_url: proyecto.imagen_url || "",
   })
 
   const [paso, setPaso] = useState(1)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState("")
+  const [subiendo, setSubiendo] = useState(false)
+  const [imagenPreview, setImagenPreview] = useState(proyecto.imagen_url || "")
+  const [imagenFile, setImagenFile] = useState(null)
 
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -91,11 +95,30 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
   const pctAvance = estadoActual?.pct ?? proyecto.avance ?? 0
   const fichaViable = calcularViabilidad(ficha)
 
+
+  const uploadImagen = async (file) => {
+    if (!file) return null
+    setSubiendo(true)
+    const ext = file.name.split('.').pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await supabase.storage.from('proyectos').upload(fileName, file, { upsert: true })
+    setSubiendo(false)
+    if (error) { setError('Error subiendo imagen: ' + error.message); return null }
+    const { data } = supabase.storage.from('proyectos').getPublicUrl(fileName)
+    return data.publicUrl
+  }
+
   async function guardar() {
     if (!form.nombre.trim()) { setError("El nombre del proyecto es obligatorio."); return }
     if (!form.estado) { setError("Selecciona un estado para el proyecto."); return }
     setGuardando(true)
     setError("")
+
+    let imagenFinal = form.imagen_url
+    if (imagenFile) {
+      const url = await uploadImagen(imagenFile)
+      if (url) imagenFinal = url
+    }
 
     const tipoFondoFinal = form.tipo_fondo === "__otro__" ? form.tipo_fondo_otro : form.tipo_fondo
 
@@ -129,6 +152,7 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
       ficha_ifc: ficha.ifc,
       ficha_zonificacion: ficha.zonificacion,
       ficha_pladeco: ficha.pladeco,
+      imagen_url: imagenFinal,
     }
 
     const camposOriginales = {
@@ -161,6 +185,7 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
       ficha_ifc: proyecto.ficha_ifc,
       ficha_zonificacion: proyecto.ficha_zonificacion,
       ficha_pladeco: proyecto.ficha_pladeco,
+      imagen_url: proyecto.imagen_url,
     }
 
     const registros = []
@@ -327,6 +352,38 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
               <Campo label="Encargado del proyecto">
                 <input className="input" placeholder="Nombre del encargado o responsable"
                   value={form.encargado} onChange={(e) => setF("encargado", e.target.value)} />
+              </Campo>
+
+
+              <Campo label="Foto del proyecto (opcional)">
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-blue-300 transition-colors">
+                  {imagenPreview ? (
+                    <div className="relative">
+                      <img src={imagenPreview} alt="preview"
+                        className="w-full h-36 object-cover rounded-lg mb-2" />
+                      <button type="button"
+                        onClick={() => { setImagenPreview(""); setImagenFile(null); setF("imagen_url", "") }}
+                        className="text-xs text-red-500 hover:text-red-700">✕ Quitar imagen</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-3xl mb-2">🖼️</div>
+                      <p className="text-xs text-gray-400 mb-2">Sube una foto del proyecto</p>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" id="img-editar"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files[0]
+                      if (!file) return
+                      setImagenFile(file)
+                      setImagenPreview(URL.createObjectURL(file))
+                    }} />
+                  <label htmlFor="img-editar"
+                    className="inline-block mt-1 px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-600 cursor-pointer transition-colors">
+                    {subiendo ? "Subiendo..." : "Seleccionar imagen"}
+                  </label>
+                </div>
               </Campo>
 
               <Campo label="Link al Drive del proyecto">
