@@ -45,31 +45,30 @@ function descargarWord(ficha) {
     "53543432", // 22 pladeco No
   ]
 
-  // Mapa verificado contra el XML real del template (margin-left determina posición)
   const toFill = new Set()
-  if (ficha.tipo_organismo === "SUBDERE")   toFill.add(2)   // 7EDF22B0 margin=75pt
-  if (ficha.tipo_organismo === "GORE")      toFill.add(0)   // 07C23519 margin=293pt
-  if (ficha.tipo_organismo === "Municipal") toFill.add(1)   // 095DC390 margin=445pt
-  if (ficha.iniciativas_previas === true)   toFill.add(4)   // 204470E2 margin=369pt (Si)
-  if (ficha.iniciativas_previas === false)  toFill.add(3)   // 718C651D margin=445pt (No)
-  if (ficha.cbr === true)                   toFill.add(6)   // 61AC06E3 margin=377pt (Si)
-  if (ficha.cbr === false)                  toFill.add(5)   // 7D01A8D1 margin=445pt (No)
-  if (ficha.rol_avaluo === true)            toFill.add(8)   // 3C4E7570 margin=377pt (Si)
-  if (ficha.rol_avaluo === false)           toFill.add(7)   // 532CC109 margin=445pt (No)
-  if (ficha.propiedad_municipal === true)   toFill.add(10)  // 10B41E7B margin=377pt (Si)
-  if (ficha.propiedad_municipal === false)  toFill.add(9)   // 65F32F83 margin=445pt (No)
-  if (ficha.comodato === true)              toFill.add(12)  // 32BDDCE7 margin=377pt (Si)
-  if (ficha.comodato === false)             toFill.add(11)  // 4936E962 margin=445pt (No)
-  if (ficha.permiso_edificacion === true)   toFill.add(14)  // 196452AE margin=377pt (Si)
-  if (ficha.permiso_edificacion === false)  toFill.add(13)  // 54E17E92 margin=445pt (No)
-  if (ficha.tipo_terreno === "urbano")      toFill.add(15)  // 2BD667E6 margin=286pt
-  if (ficha.tipo_terreno === "rural")       toFill.add(16)  // 6940C281 margin=188pt
-  if (ficha.ifc === true)                   toFill.add(17)  // 36D3AE5A margin=302pt (Si)
-  if (ficha.ifc === false)                  toFill.add(18)  // 304FB53C margin=377pt (No)
-  if (ficha.zonificacion === true)          toFill.add(20)  // 6E55469A margin=377pt (Si)
-  if (ficha.zonificacion === false)         toFill.add(19)  // 43EF3DCC margin=446pt (No)
-  if (ficha.pladeco === true)               toFill.add(22)  // 53543432 margin=379pt (Si)
-  if (ficha.pladeco === false)              toFill.add(21)  // 7BE45A03 margin=446pt (No)
+  if (ficha.tipo_organismo === "SUBDERE")  toFill.add(0)
+  if (ficha.tipo_organismo === "GORE")     toFill.add(1)
+  if (ficha.tipo_organismo === "Municipal") toFill.add(2)
+  if (ficha.iniciativas_previas === true)  toFill.add(3)
+  if (ficha.iniciativas_previas === false) toFill.add(4)
+  if (ficha.cbr === true)                  toFill.add(5)
+  if (ficha.cbr === false)                 toFill.add(6)
+  if (ficha.rol_avaluo === true)           toFill.add(7)
+  if (ficha.rol_avaluo === false)          toFill.add(8)
+  if (ficha.propiedad_municipal === true)  toFill.add(9)
+  if (ficha.propiedad_municipal === false) toFill.add(10)
+  if (ficha.comodato === true)             toFill.add(11)
+  if (ficha.comodato === false)            toFill.add(12)
+  if (ficha.permiso_edificacion === true)  toFill.add(13)
+  if (ficha.permiso_edificacion === false) toFill.add(14)
+  if (ficha.tipo_terreno === "urbano")     toFill.add(16)  // 6940C281 (Urbano)
+  if (ficha.tipo_terreno === "rural")      toFill.add(15)  // 2BD667E6 (Rural)
+  if (ficha.ifc === true)                  toFill.add(17)
+  if (ficha.ifc === false)                 toFill.add(18)
+  if (ficha.zonificacion === true)         toFill.add(19)
+  if (ficha.zonificacion === false)        toFill.add(20)
+  if (ficha.pladeco === true)              toFill.add(21)
+  if (ficha.pladeco === false)             toFill.add(22)
 
   fetch("/ficha_template.docx")
     .then(res => res.arrayBuffer())
@@ -79,21 +78,24 @@ function descargarWord(ficha) {
 
       // Para cada rect a marcar: cambiar filled="f" por filled="t" fillcolor="#000000"
       // El tag v:rect tiene: filled="f" strokecolor=... como atributos al final
-            // Cada casilla tiene DOS representaciones en mc:AlternateContent:
-      // 1. mc:Choice > wps:wsp — Word moderno (tiene <a:noFill/>)
-      // 2. mc:Fallback > v:rect — VML fallback (tiene filled="f")
-      const ALT_CLOSE = '</mc:AlternateContent>'
+      // Solo necesitamos cambiar filled="f" en el rect que tiene el anchorId correcto
       for (const idx of toFill) {
         const aid = ANCHOR_IDS[idx]
-        const vmlSearch = 'w14:anchorId="' + aid + '"'
-        if (modified.includes(vmlSearch)) {
-          const vmlPos = modified.indexOf(vmlSearch)
-          const altStart = modified.lastIndexOf('<mc:AlternateContent>', vmlPos)
-          const altEnd = modified.indexOf(ALT_CLOSE, vmlPos) + ALT_CLOSE.length
-          let altBlock = modified.substring(altStart, altEnd)
-          altBlock = altBlock.replace('<a:noFill/>', '<a:solidFill><a:srgbClr val="000000"/></a:solidFill>')
-          altBlock = altBlock.replace('filled="f"', 'filled="t" fillcolor="#000000"')
-          modified = modified.substring(0, altStart) + altBlock + modified.substring(altEnd)
+        const searchStr = 'w14:anchorId="' + aid + '"'
+        if (modified.includes(searchStr)) {
+          // Encontrar posición del anchorId en el XML
+          const anchorPos = modified.indexOf(searchStr)
+          // Retroceder hasta el inicio del tag <v:rect
+          const tagStart = modified.lastIndexOf('<v:rect', anchorPos)
+          // Encontrar el cierre del tag />
+          const tagEnd = modified.indexOf('/>', anchorPos) + 2
+          // Extraer el tag completo
+          const fullTag = modified.substring(tagStart, tagEnd)
+          // Reemplazar filled="f" por filled="t" con color negro
+          if (fullTag.includes('filled="f"')) {
+            const fixedTag = fullTag.replace('filled="f"', 'filled="t" fillcolor="#000000"')
+            modified = modified.substring(0, tagStart) + fixedTag + modified.substring(tagEnd)
+          }
         }
       }
 
