@@ -391,13 +391,11 @@ export default function App() {
   const [cargando, setCargando] = useState(true)
   const [filtroFinanciador, setFiltroFinanciador] = useState('Todos')
   const [filtroPrioridad, setFiltroPrioridad] = useState('Todas')
-  const [filtroEstado, setFiltroEstado] = useState('Todos')
   const [mostrarForm, setMostrarForm] = useState(false)
   const [mostrarAdmin, setMostrarAdmin] = useState(false)
   const [proyectoEditando, setProyectoEditando] = useState(null)
   const [proyectoDetalle, setProyectoDetalle] = useState(null)
   const [busqueda, setBusqueda] = useState('')
-  const [vista, setVista] = useState('cuadros') // 'cuadros' | 'lista'
   const [sidebarAbierto, setSidebarAbierto] = useState(true)
 
   useEffect(() => {
@@ -432,12 +430,9 @@ export default function App() {
 
   const financiadores = ['Todos', 'GORE', 'SUBDERE', 'Fondos Sectoriales', 'Municipal (Fondos Propios)', 'Otro']
   const prioridades = ['Todas', 'Alta', 'Media', 'Baja']
-  const estados = ['Todos', 'Idea', 'Formulación', 'Postulación', 'Aprobado', 'Licitación', 'Adjudicado', 'Finalizado']
-
   const proyectosFiltrados = proyectos
     .filter(p => filtroFinanciador === 'Todos' || p.financiador === filtroFinanciador || p.fondo === filtroFinanciador)
     .filter(p => filtroPrioridad === 'Todas' || p.prioridad === filtroPrioridad)
-    .filter(p => filtroEstado === 'Todos' || p.estado === filtroEstado)
     .filter(p => !busqueda || p.nombre?.toLowerCase().includes(busqueda.toLowerCase()) || p.descripcion?.toLowerCase().includes(busqueda.toLowerCase()))
 
   const enEjecucion = proyectos.filter(p => ['En ejecución', 'Adjudicado', 'Licitación', 'Aprobado'].includes(p.estado)).length
@@ -481,15 +476,6 @@ export default function App() {
             {prioridades.map(p => (
               <NavItem key={p} label={p} active={filtroPrioridad === p}
                 onClick={() => setFiltroPrioridad(p)} indent />
-            ))}
-          </div>
-
-          {/* Estado */}
-          <div>
-            <p className="text-blue-300/70 text-xs font-bold uppercase tracking-widest px-3 mb-2">Estado</p>
-            {estados.map(e => (
-              <NavItem key={e} label={e} active={filtroEstado === e}
-                onClick={() => setFiltroEstado(e)} indent />
             ))}
           </div>
 
@@ -549,35 +535,6 @@ export default function App() {
               className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1B3F8B] focus:ring-2 focus:ring-[#1B3F8B]/10 transition-all" />
           </div>
 
-          {/* Filtros rápidos prioridad */}
-          <div className="hidden lg:flex gap-1.5">
-            {prioridades.map(p => {
-              const col = p !== 'Todas' ? PRIORIDAD_COLORES[p] : null
-              return (
-                <button key={p} onClick={() => setFiltroPrioridad(p)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                    filtroPrioridad === p ? 'border-transparent shadow-sm' : 'border-gray-200 text-gray-500 bg-white hover:border-gray-300'
-                  }`}
-                  style={filtroPrioridad === p && col ? { background: col.bg, color: col.text, borderColor: 'transparent' }
-                    : filtroPrioridad === p ? { background: '#1B3F8B', color: 'white' } : {}}>
-                  {p !== 'Todas' && '● '}{p}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Toggle vista */}
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1 flex-shrink-0">
-            <button onClick={() => setVista('cuadros')}
-              className={`p-2 rounded-lg transition-all ${vista === 'cuadros' ? 'bg-white shadow-sm text-[#1B3F8B]' : 'text-gray-400 hover:text-gray-600'}`}>
-              <IconGrid />
-            </button>
-            <button onClick={() => setVista('lista')}
-              className={`p-2 rounded-lg transition-all ${vista === 'lista' ? 'bg-white shadow-sm text-[#1B3F8B]' : 'text-gray-400 hover:text-gray-600'}`}>
-              <IconList />
-            </button>
-          </div>
-
           {/* Nuevo proyecto */}
           <button onClick={() => setMostrarForm(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white flex-shrink-0 shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -602,31 +559,15 @@ export default function App() {
               sub="Organismos distintos" />
           </div>
 
-          {/* Filtros estado inline */}
-          <div className="flex gap-2 mb-5 flex-wrap items-center">
-            <span className="text-xs text-gray-400 font-semibold mr-1">Estado:</span>
-            {estados.map(e => {
-              const ec = e !== 'Todos' ? (ESTADOS_COLORES[e] || null) : null
-              return (
-                <button key={e} onClick={() => setFiltroEstado(e)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    filtroEstado === e ? 'border-transparent shadow-sm' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}
-                  style={filtroEstado === e && ec ? { background: ec.bg, color: ec.text } :
-                    filtroEstado === e ? { background: '#1B3F8B', color: 'white' } : {}}>
-                  {e !== 'Todos' && <span className="mr-1 inline-block w-1.5 h-1.5 rounded-full align-middle"
-                    style={{ background: ec?.dot || '#94A3B8' }} />}
-                  {e}
-                </button>
-              )
-            })}
-            {(filtroFinanciador !== 'Todos' || filtroPrioridad !== 'Todas' || filtroEstado !== 'Todos' || busqueda) && (
-              <button onClick={() => { setFiltroFinanciador('Todos'); setFiltroPrioridad('Todas'); setFiltroEstado('Todos'); setBusqueda('') }}
-                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all ml-auto">
+          {/* Limpiar filtros */}
+          {(filtroFinanciador !== 'Todos' || filtroPrioridad !== 'Todas' || busqueda) && (
+            <div className="flex justify-end mb-4">
+              <button onClick={() => { setFiltroFinanciador('Todos'); setFiltroPrioridad('Todas'); setBusqueda('') }}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all">
                 ✕ Limpiar filtros
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Resultado búsqueda */}
           {busqueda && (
@@ -648,15 +589,6 @@ export default function App() {
               <div className="text-6xl mb-4">📂</div>
               <p className="font-semibold text-gray-500">No hay proyectos</p>
               <p className="text-sm mt-1">{busqueda ? `No hay resultados para "${busqueda}"` : 'Prueba cambiando los filtros'}</p>
-            </div>
-          ) : vista === 'cuadros' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-              {proyectosFiltrados.map(p => (
-                <TarjetaCuadro key={p.id} p={p}
-                  onVerDetalle={setProyectoDetalle}
-                  onEditar={setProyectoEditando}
-                  onEliminar={eliminarProyecto} />
-              ))}
             </div>
           ) : (
             <div className="space-y-2.5">
