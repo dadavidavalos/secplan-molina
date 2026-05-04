@@ -4,7 +4,6 @@ import Login from './Login'
 import EditarProyecto from './EditarProyecto'
 import AgregarProyecto from './AgregarProyecto'
 import AdminPanel from './AdminPanel'
-import DetalleProyecto from './DetalleProyecto'
 
 // ─── Paleta institucional Molina ───────────────────────────────────────────
 // Azul institucional: #1B3F8B  |  Verde lima: #8DC63F  |  Acento ámbar: #F5A623
@@ -688,10 +687,71 @@ export default function App() {
         />
       )}
       {proyectoDetalle && (
-        <DetalleProyecto
-          proyecto={proyectoDetalle}
-          onCerrar={() => setProyectoDetalle(null)}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setProyectoDetalle(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-bold text-gray-900 text-base leading-snug pr-4">{proyectoDetalle.nombre}</h2>
+              <button onClick={() => setProyectoDetalle(null)} className="text-gray-400 hover:text-gray-600 text-xl flex-shrink-0">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              {(() => {
+                const fc = getFondoColor(proyectoDetalle)
+                const ec = ESTADOS_COLORES[proyectoDetalle.estado] || ESTADOS_COLORES['Idea']
+                const pc = proyectoDetalle.prioridad ? PRIORIDAD_COLORES[proyectoDetalle.prioridad] : null
+                return (<>
+                  {proyectoDetalle.imagen_url && (
+                    <img src={proyectoDetalle.imagen_url} alt={proyectoDetalle.nombre}
+                      className="w-full h-48 object-cover rounded-xl" />
+                  )}
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="px-3 py-1 rounded-lg text-xs font-bold text-white" style={{ background: fc.bg }}>{fc.label}</span>
+                    {proyectoDetalle.financiador && <span className="px-3 py-1 rounded-lg text-xs bg-gray-100 text-gray-600">{proyectoDetalle.financiador}</span>}
+                    {proyectoDetalle.estado && <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: ec.bg, color: ec.text }}>{proyectoDetalle.estado}</span>}
+                    {pc && <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: pc.bg, color: pc.text }}>● {proyectoDetalle.prioridad}</span>}
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Avance</span><span className="font-bold" style={{ color: fc.bg }}>{proyectoDetalle.avance ?? 0}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${proyectoDetalle.avance ?? 0}%`, background: fc.bg }} />
+                    </div>
+                  </div>
+                  {proyectoDetalle.descripcion && <p className="text-sm text-gray-600 leading-relaxed">{proyectoDetalle.descripcion}</p>}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      ['Encargado', proyectoDetalle.encargado],
+                      ['Presupuesto', proyectoDetalle.presupuesto ? formatMonto(proyectoDetalle.presupuesto, proyectoDetalle.moneda) : null],
+                      ['Monto asignado', proyectoDetalle.asignado ? formatMonto(proyectoDetalle.asignado, proyectoDetalle.moneda) : null],
+                      ['Fecha inicio', proyectoDetalle.fecha_inicio],
+                      ['Fecha cierre', proyectoDetalle.fecha_cierre],
+                      ['Tipo', proyectoDetalle.tipo_iniciativa],
+                    ].filter(([,v]) => v).map(([l, v]) => (
+                      <div key={l} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-xs text-gray-400 mb-0.5">{l}</p>
+                        <p className="text-sm font-semibold text-gray-800">{v}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {proyectoDetalle.ubicacion && (
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(proyectoDetalle.ubicacion)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                      📍 {proyectoDetalle.ubicacion}
+                    </a>
+                  )}
+                  {proyectoDetalle.link_drive && (
+                    <a href={proyectoDetalle.link_drive} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white w-full justify-center transition-all hover:opacity-90"
+                      style={{ background: 'linear-gradient(135deg, #1B3F8B 0%, #2563EB 100%)' }}>
+                      📁 Abrir carpeta en Drive
+                    </a>
+                  )}
+                </>)
+              })()}
+            </div>
+          </div>
+        </div>
       )}
       {mostrarAdmin && (
         <AdminPanel onCerrar={() => setMostrarAdmin(false)} />
