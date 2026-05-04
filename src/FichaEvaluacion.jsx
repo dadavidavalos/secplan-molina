@@ -76,26 +76,24 @@ function descargarWord(ficha) {
     .then(zip => zip.file("word/document.xml").async("string").then(xml => {
       let modified = xml
 
-      // Para cada rect a marcar: cambiar filled="f" por filled="t" fillcolor="#000000"
-      // El tag v:rect tiene: filled="f" strokecolor=... como atributos al final
-      // Solo necesitamos cambiar filled="f" en el rect que tiene el anchorId correcto
+      // Cada casilla tiene DOS representaciones dentro de mc:AlternateContent:
+      // 1. mc:Choice > w:drawing > wps:wsp  — la que usa Word moderno (tiene <a:noFill/>)
+      // 2. mc:Fallback > w:pict > v:rect     — fallback VML (tiene filled="f")
+      // Hay que modificar AMBAS para que Word y LibreOffice muestren el relleno
+      const ALT_CLOSE = '</mc:AlternateContent>'
       for (const idx of toFill) {
         const aid = ANCHOR_IDS[idx]
-        const searchStr = 'w14:anchorId="' + aid + '"'
-        if (modified.includes(searchStr)) {
-          // Encontrar posición del anchorId en el XML
-          const anchorPos = modified.indexOf(searchStr)
-          // Retroceder hasta el inicio del tag <v:rect
-          const tagStart = modified.lastIndexOf('<v:rect', anchorPos)
-          // Encontrar el cierre del tag />
-          const tagEnd = modified.indexOf('/>', anchorPos) + 2
-          // Extraer el tag completo
-          const fullTag = modified.substring(tagStart, tagEnd)
-          // Reemplazar filled="f" por filled="t" con color negro
-          if (fullTag.includes('filled="f"')) {
-            const fixedTag = fullTag.replace('filled="f"', 'filled="t" fillcolor="#000000"')
-            modified = modified.substring(0, tagStart) + fixedTag + modified.substring(tagEnd)
-          }
+        const vmlSearch = 'w14:anchorId="' + aid + '"'
+        if (modified.includes(vmlSearch)) {
+          const vmlPos = modified.indexOf(vmlSearch)
+          const altStart = modified.lastIndexOf('<mc:AlternateContent>', vmlPos)
+          const altEnd = modified.indexOf(ALT_CLOSE, vmlPos) + ALT_CLOSE.length
+          let altBlock = modified.substring(altStart, altEnd)
+          // 1. Word moderno: reemplazar <a:noFill/> con relleno sólido negro
+          altBlock = altBlock.replace('<a:noFill/>', '<a:solidFill><a:srgbClr val="000000"/></a:solidFill>')
+          // 2. VML fallback: marcar el v:rect con filled="t"
+          altBlock = altBlock.replace('filled="f"', 'filled="t" fillcolor="#000000"')
+          modified = modified.substring(0, altStart) + altBlock + modified.substring(altEnd)
         }
       }
 
