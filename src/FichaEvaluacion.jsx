@@ -19,56 +19,57 @@ export function calcularViabilidad(f) {
 }
 
 function descargarWord(ficha) {
+  // anchorIds de los 23 rectángulos del template, en orden de aparición en el XML
   const ANCHOR_IDS = [
-    "07C23519", // 0  SUBDERE
-    "095DC390", // 1  GORE
-    "7EDF22B0", // 2  MUNICIPAL
-    "718C651D", // 3  iniciativas Si
-    "204470E2", // 4  iniciativas No
-    "7D01A8D1", // 5  CBR Si
-    "61AC06E3", // 6  CBR No
-    "532CC109", // 7  rol_avaluo Si
-    "3C4E7570", // 8  rol_avaluo No
-    "65F32F83", // 9  prop_municipal Si
-    "10B41E7B", // 10 prop_municipal No
-    "4936E962", // 11 comodato Si
-    "32BDDCE7", // 12 comodato No
-    "54E17E92", // 13 permiso Si
-    "196452AE", // 14 permiso No
-    "2BD667E6", // 15 Urbano
-    "6940C281", // 16 Rural
-    "304FB53C", // 17 IFC Si
-    "36D3AE5A", // 18 IFC No
-    "43EF3DCC", // 19 zonificacion Si
-    "6E55469A", // 20 zonificacion No
-    "7BE45A03", // 21 pladeco Si
-    "53543432", // 22 pladeco No
+    "07C23519", // 0  GORE box (margin=293pt — caja del medio)
+    "095DC390", // 1  MUNICIPAL box (margin=445pt — caja derecha)
+    "7EDF22B0", // 2  SUBDERE box (margin=75pt — caja izquierda)
+    "718C651D", // 3  iniciativas No (margin=445pt)
+    "204470E2", // 4  iniciativas Si (margin=369pt)
+    "7D01A8D1", // 5  CBR No (margin=445pt)
+    "61AC06E3", // 6  CBR Si (margin=377pt)
+    "532CC109", // 7  rol_avaluo No (margin=445pt)
+    "3C4E7570", // 8  rol_avaluo Si (margin=377pt)
+    "65F32F83", // 9  prop_municipal No (margin=445pt)
+    "10B41E7B", // 10 prop_municipal Si (margin=377pt)
+    "4936E962", // 11 comodato No (margin=445pt)
+    "32BDDCE7", // 12 comodato Si (margin=377pt)
+    "54E17E92", // 13 permiso No (margin=445pt)
+    "196452AE", // 14 permiso Si (margin=377pt)
+    "2BD667E6", // 15 Rural box (margin=286pt)
+    "6940C281", // 16 Urbano box (margin=188pt)
+    "36D3AE5A", // 17 IFC Si (margin=302pt)
+    "304FB53C", // 18 IFC No (margin=377pt)
+    "43EF3DCC", // 19 zonificacion No (margin=446pt)
+    "6E55469A", // 20 zonificacion Si (margin=377pt)
+    "7BE45A03", // 21 pladeco No (margin=446pt)
+    "53543432", // 22 pladeco Si (margin=379pt)
   ]
 
   const toFill = new Set()
-  if (ficha.tipo_organismo === "SUBDERE")  toFill.add(0)
-  if (ficha.tipo_organismo === "GORE")     toFill.add(1)
-  if (ficha.tipo_organismo === "Municipal") toFill.add(2)
-  if (ficha.iniciativas_previas === true)  toFill.add(3)
-  if (ficha.iniciativas_previas === false) toFill.add(4)
-  if (ficha.cbr === true)                  toFill.add(5)
-  if (ficha.cbr === false)                 toFill.add(6)
-  if (ficha.rol_avaluo === true)           toFill.add(7)
-  if (ficha.rol_avaluo === false)          toFill.add(8)
-  if (ficha.propiedad_municipal === true)  toFill.add(9)
-  if (ficha.propiedad_municipal === false) toFill.add(10)
-  if (ficha.comodato === true)             toFill.add(11)
-  if (ficha.comodato === false)            toFill.add(12)
-  if (ficha.permiso_edificacion === true)  toFill.add(13)
-  if (ficha.permiso_edificacion === false) toFill.add(14)
-  if (ficha.tipo_terreno === "urbano")     toFill.add(16)  // 6940C281 (Urbano)
-  if (ficha.tipo_terreno === "rural")      toFill.add(15)  // 2BD667E6 (Rural)
-  if (ficha.ifc === true)                  toFill.add(17)
-  if (ficha.ifc === false)                 toFill.add(18)
-  if (ficha.zonificacion === true)         toFill.add(19)
-  if (ficha.zonificacion === false)        toFill.add(20)
-  if (ficha.pladeco === true)              toFill.add(21)
-  if (ficha.pladeco === false)             toFill.add(22)
+  if (ficha.tipo_organismo === "SUBDERE")   toFill.add(2)
+  if (ficha.tipo_organismo === "GORE")      toFill.add(0)
+  if (ficha.tipo_organismo === "Municipal") toFill.add(1)
+  if (ficha.iniciativas_previas === true)   toFill.add(4)
+  if (ficha.iniciativas_previas === false)  toFill.add(3)
+  if (ficha.cbr === true)                   toFill.add(6)
+  if (ficha.cbr === false)                  toFill.add(5)
+  if (ficha.rol_avaluo === true)            toFill.add(8)
+  if (ficha.rol_avaluo === false)           toFill.add(7)
+  if (ficha.propiedad_municipal === true)   toFill.add(10)
+  if (ficha.propiedad_municipal === false)  toFill.add(9)
+  if (ficha.comodato === true)              toFill.add(12)
+  if (ficha.comodato === false)             toFill.add(11)
+  if (ficha.permiso_edificacion === true)   toFill.add(14)
+  if (ficha.permiso_edificacion === false)  toFill.add(13)
+  if (ficha.tipo_terreno === "urbano")      toFill.add(16)
+  if (ficha.tipo_terreno === "rural")       toFill.add(15)
+  if (ficha.ifc === true)                   toFill.add(17)
+  if (ficha.ifc === false)                  toFill.add(18)
+  if (ficha.zonificacion === true)          toFill.add(20)
+  if (ficha.zonificacion === false)         toFill.add(19)
+  if (ficha.pladeco === true)               toFill.add(22)
+  if (ficha.pladeco === false)              toFill.add(21)
 
   fetch("/ficha_template.docx")
     .then(res => res.arrayBuffer())
@@ -76,26 +77,22 @@ function descargarWord(ficha) {
     .then(zip => zip.file("word/document.xml").async("string").then(xml => {
       let modified = xml
 
-      // Para cada rect a marcar: cambiar filled="f" por filled="t" fillcolor="#000000"
-      // El tag v:rect tiene: filled="f" strokecolor=... como atributos al final
-      // Solo necesitamos cambiar filled="f" en el rect que tiene el anchorId correcto
+      // Cada casilla tiene DOS representaciones en mc:AlternateContent:
+      // 1. mc:Choice > wps:wsp  — Word moderno (tiene <a:noFill/>)
+      // 2. mc:Fallback > v:rect — VML fallback (tiene filled="f")
+      // Modificamos ambas para que funcione en Word y LibreOffice
+      const ALT_CLOSE = "</mc:AlternateContent>"
       for (const idx of toFill) {
         const aid = ANCHOR_IDS[idx]
-        const searchStr = 'w14:anchorId="' + aid + '"'
-        if (modified.includes(searchStr)) {
-          // Encontrar posición del anchorId en el XML
-          const anchorPos = modified.indexOf(searchStr)
-          // Retroceder hasta el inicio del tag <v:rect
-          const tagStart = modified.lastIndexOf('<v:rect', anchorPos)
-          // Encontrar el cierre del tag />
-          const tagEnd = modified.indexOf('/>', anchorPos) + 2
-          // Extraer el tag completo
-          const fullTag = modified.substring(tagStart, tagEnd)
-          // Reemplazar filled="f" por filled="t" con color negro
-          if (fullTag.includes('filled="f"')) {
-            const fixedTag = fullTag.replace('filled="f"', 'filled="t" fillcolor="#000000"')
-            modified = modified.substring(0, tagStart) + fixedTag + modified.substring(tagEnd)
-          }
+        const vmlSearch = "w14:anchorId=\"" + aid + "\""
+        if (modified.includes(vmlSearch)) {
+          const vmlPos = modified.indexOf(vmlSearch)
+          const altStart = modified.lastIndexOf("<mc:AlternateContent>", vmlPos)
+          const altEnd = modified.indexOf(ALT_CLOSE, vmlPos) + ALT_CLOSE.length
+          let altBlock = modified.substring(altStart, altEnd)
+          altBlock = altBlock.replace("<a:noFill/>", "<a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill>")
+          altBlock = altBlock.replace("filled=\"f\"", "filled=\"t\" fillcolor=\"#000000\"")
+          modified = modified.substring(0, altStart) + altBlock + modified.substring(altEnd)
         }
       }
 
