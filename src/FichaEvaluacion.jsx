@@ -45,33 +45,31 @@ function descargarWord(ficha) {
     "53543432", // 22 pladeco No
   ]
 
-  // MAPA CORREGIDO: verificado contra el XML real del template
-  // Índices pares/impares NO corresponden a Si/No — depende del margin-left de cada rect
-  // Izquierda (margin < 400pt) = Si, Derecha (margin > 400pt) = No
+  // Mapa verificado contra el XML real del template (margin-left determina posición)
   const toFill = new Set()
-  if (ficha.tipo_organismo === "SUBDERE")   toFill.add(0)   // margin=293
-  if (ficha.tipo_organismo === "GORE")      toFill.add(1)   // margin=445
-  if (ficha.tipo_organismo === "Municipal") toFill.add(2)   // margin=75
-  if (ficha.iniciativas_previas === true)   toFill.add(4)   // Si margin=369
-  if (ficha.iniciativas_previas === false)  toFill.add(3)   // No margin=445
-  if (ficha.cbr === true)                   toFill.add(6)   // Si margin=377
-  if (ficha.cbr === false)                  toFill.add(5)   // No margin=445
-  if (ficha.rol_avaluo === true)            toFill.add(8)   // Si margin=377
-  if (ficha.rol_avaluo === false)           toFill.add(7)   // No margin=445
-  if (ficha.propiedad_municipal === true)   toFill.add(10)  // Si margin=377
-  if (ficha.propiedad_municipal === false)  toFill.add(9)   // No margin=445
-  if (ficha.comodato === true)              toFill.add(12)  // Si margin=377
-  if (ficha.comodato === false)             toFill.add(11)  // No margin=445
-  if (ficha.permiso_edificacion === true)   toFill.add(14)  // Si margin=377
-  if (ficha.permiso_edificacion === false)  toFill.add(13)  // No margin=445
-  if (ficha.tipo_terreno === "urbano")      toFill.add(15)  // Urbano margin=286
-  if (ficha.tipo_terreno === "rural")       toFill.add(16)  // Rural margin=188
-  if (ficha.ifc === true)                   toFill.add(17)  // Si margin=302
-  if (ficha.ifc === false)                  toFill.add(18)  // No margin=377
-  if (ficha.zonificacion === true)          toFill.add(20)  // Si margin=377
-  if (ficha.zonificacion === false)         toFill.add(19)  // No margin=446
-  if (ficha.pladeco === true)               toFill.add(22)  // Si margin=379
-  if (ficha.pladeco === false)              toFill.add(21)  // No margin=446
+  if (ficha.tipo_organismo === "SUBDERE")   toFill.add(2)   // 7EDF22B0 margin=75pt
+  if (ficha.tipo_organismo === "GORE")      toFill.add(0)   // 07C23519 margin=293pt
+  if (ficha.tipo_organismo === "Municipal") toFill.add(1)   // 095DC390 margin=445pt
+  if (ficha.iniciativas_previas === true)   toFill.add(4)   // 204470E2 margin=369pt (Si)
+  if (ficha.iniciativas_previas === false)  toFill.add(3)   // 718C651D margin=445pt (No)
+  if (ficha.cbr === true)                   toFill.add(6)   // 61AC06E3 margin=377pt (Si)
+  if (ficha.cbr === false)                  toFill.add(5)   // 7D01A8D1 margin=445pt (No)
+  if (ficha.rol_avaluo === true)            toFill.add(8)   // 3C4E7570 margin=377pt (Si)
+  if (ficha.rol_avaluo === false)           toFill.add(7)   // 532CC109 margin=445pt (No)
+  if (ficha.propiedad_municipal === true)   toFill.add(10)  // 10B41E7B margin=377pt (Si)
+  if (ficha.propiedad_municipal === false)  toFill.add(9)   // 65F32F83 margin=445pt (No)
+  if (ficha.comodato === true)              toFill.add(12)  // 32BDDCE7 margin=377pt (Si)
+  if (ficha.comodato === false)             toFill.add(11)  // 4936E962 margin=445pt (No)
+  if (ficha.permiso_edificacion === true)   toFill.add(14)  // 196452AE margin=377pt (Si)
+  if (ficha.permiso_edificacion === false)  toFill.add(13)  // 54E17E92 margin=445pt (No)
+  if (ficha.tipo_terreno === "urbano")      toFill.add(15)  // 2BD667E6 margin=286pt
+  if (ficha.tipo_terreno === "rural")       toFill.add(16)  // 6940C281 margin=188pt
+  if (ficha.ifc === true)                   toFill.add(17)  // 36D3AE5A margin=302pt (Si)
+  if (ficha.ifc === false)                  toFill.add(18)  // 304FB53C margin=377pt (No)
+  if (ficha.zonificacion === true)          toFill.add(20)  // 6E55469A margin=377pt (Si)
+  if (ficha.zonificacion === false)         toFill.add(19)  // 43EF3DCC margin=446pt (No)
+  if (ficha.pladeco === true)               toFill.add(22)  // 53543432 margin=379pt (Si)
+  if (ficha.pladeco === false)              toFill.add(21)  // 7BE45A03 margin=446pt (No)
 
   fetch("/ficha_template.docx")
     .then(res => res.arrayBuffer())
@@ -79,10 +77,11 @@ function descargarWord(ficha) {
     .then(zip => zip.file("word/document.xml").async("string").then(xml => {
       let modified = xml
 
-      // Cada casilla tiene DOS representaciones en mc:AlternateContent:
+      // Para cada rect a marcar: cambiar filled="f" por filled="t" fillcolor="#000000"
+      // El tag v:rect tiene: filled="f" strokecolor=... como atributos al final
+            // Cada casilla tiene DOS representaciones en mc:AlternateContent:
       // 1. mc:Choice > wps:wsp — Word moderno (tiene <a:noFill/>)
       // 2. mc:Fallback > v:rect — VML fallback (tiene filled="f")
-      // Modificamos ambas para que funcione en Word y LibreOffice
       const ALT_CLOSE = '</mc:AlternateContent>'
       for (const idx of toFill) {
         const aid = ANCHOR_IDS[idx]
