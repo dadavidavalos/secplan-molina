@@ -19,83 +19,102 @@ export function calcularViabilidad(f) {
 }
 
 function descargarWord(ficha) {
-  // anchorIds de los 23 rectángulos del template, en orden de aparición en el XML
   const ANCHOR_IDS = [
-    "07C23519", // 0  GORE box (margin=293pt — caja del medio)
-    "095DC390", // 1  MUNICIPAL box (margin=445pt — caja derecha)
-    "7EDF22B0", // 2  SUBDERE box (margin=75pt — caja izquierda)
-    "718C651D", // 3  iniciativas No (margin=445pt)
-    "204470E2", // 4  iniciativas Si (margin=369pt)
-    "7D01A8D1", // 5  CBR No (margin=445pt)
-    "61AC06E3", // 6  CBR Si (margin=377pt)
-    "532CC109", // 7  rol_avaluo No (margin=445pt)
-    "3C4E7570", // 8  rol_avaluo Si (margin=377pt)
-    "65F32F83", // 9  prop_municipal No (margin=445pt)
-    "10B41E7B", // 10 prop_municipal Si (margin=377pt)
-    "4936E962", // 11 comodato No (margin=445pt)
-    "32BDDCE7", // 12 comodato Si (margin=377pt)
-    "54E17E92", // 13 permiso No (margin=445pt)
-    "196452AE", // 14 permiso Si (margin=377pt)
-    "2BD667E6", // 15 Rural box (margin=286pt)
-    "6940C281", // 16 Urbano box (margin=188pt)
-    "36D3AE5A", // 17 IFC Si (margin=302pt)
-    "304FB53C", // 18 IFC No (margin=377pt)
-    "43EF3DCC", // 19 zonificacion No (margin=446pt)
-    "6E55469A", // 20 zonificacion Si (margin=377pt)
-    "7BE45A03", // 21 pladeco No (margin=446pt)
-    "53543432", // 22 pladeco Si (margin=379pt)
+    "07C23519", // 0  GORE box (margin=293pt)
+    "095DC390", // 1  MUNICIPAL box (margin=445pt)
+    "7EDF22B0", // 2  SUBDERE box (margin=75pt)
+    "718C651D", // 3  iniciativas No
+    "204470E2", // 4  iniciativas Si
+    "7D01A8D1", // 5  CBR No
+    "61AC06E3", // 6  CBR Si
+    "532CC109", // 7  rol_avaluo No
+    "3C4E7570", // 8  rol_avaluo Si
+    "65F32F83", // 9  prop_municipal No
+    "10B41E7B", // 10 prop_municipal Si
+    "4936E962", // 11 comodato No
+    "32BDDCE7", // 12 comodato Si
+    "54E17E92", // 13 permiso No
+    "196452AE", // 14 permiso Si
+    "2BD667E6", // 15 Rural box
+    "6940C281", // 16 Urbano box
+    "36D3AE5A", // 17 IFC Si
+    "304FB53C", // 18 IFC No
+    "43EF3DCC", // 19 zonificacion No
+    "6E55469A", // 20 zonificacion Si
+    "7BE45A03", // 21 pladeco No
+    "53543432", // 22 pladeco Si
   ]
 
   const toFill = new Set()
+
+  // Organismo
   if (ficha.tipo_organismo === "SUBDERE")   toFill.add(2)
   if (ficha.tipo_organismo === "GORE")      toFill.add(0)
   if (ficha.tipo_organismo === "Municipal") toFill.add(1)
-  if (ficha.iniciativas_previas === true)   toFill.add(4)
-  if (ficha.iniciativas_previas === false)  toFill.add(3)
-  if (ficha.cbr === true)                   toFill.add(6)
-  if (ficha.cbr === false)                  toFill.add(5)
-  if (ficha.rol_avaluo === true)            toFill.add(8)
-  if (ficha.rol_avaluo === false)           toFill.add(7)
-  if (ficha.propiedad_municipal === true)   toFill.add(10)
-  if (ficha.propiedad_municipal === false)  toFill.add(9)
-  if (ficha.comodato === true)              toFill.add(12)
-  if (ficha.comodato === false)             toFill.add(11)
-  if (ficha.permiso_edificacion === true)   toFill.add(14)
-  if (ficha.permiso_edificacion === false)  toFill.add(13)
-  if (ficha.tipo_terreno === "urbano")      toFill.add(16)
-  if (ficha.tipo_terreno === "rural")       toFill.add(15)
-  if (ficha.ifc === true)                   toFill.add(17)
-  if (ficha.ifc === false)                  toFill.add(18)
-  if (ficha.zonificacion === true)          toFill.add(20)
-  if (ficha.zonificacion === false)         toFill.add(19)
-  if (ficha.pladeco === true)               toFill.add(22)
-  if (ficha.pladeco === false)              toFill.add(21)
+
+  // Iniciativas previas — SOLO si es GORE
+  if (ficha.tipo_organismo === "GORE") {
+    if (ficha.iniciativas_previas === true)  toFill.add(4)
+    if (ficha.iniciativas_previas === false) toFill.add(3)
+  }
+
+  // Legalidad del terreno
+  if (ficha.cbr === true)  toFill.add(6)
+  if (ficha.cbr === false) toFill.add(5)
+  if (ficha.rol_avaluo === true)  toFill.add(8)
+  if (ficha.rol_avaluo === false) toFill.add(7)
+  if (ficha.propiedad_municipal === true)  toFill.add(10)
+  if (ficha.propiedad_municipal === false) toFill.add(9)
+
+  // Comodato — SOLO si propiedad_municipal es false
+  if (ficha.propiedad_municipal === false) {
+    if (ficha.comodato === true)  toFill.add(12)
+    if (ficha.comodato === false) toFill.add(11)
+  }
+
+  // Permiso de edificación
+  if (ficha.permiso_edificacion === true)  toFill.add(14)
+  if (ficha.permiso_edificacion === false) toFill.add(13)
+
+  // Urbano/Rural e IFC/Zonificación — SOLO si permiso_edificacion es true
+  if (ficha.permiso_edificacion === true) {
+    if (ficha.tipo_terreno === "urbano") toFill.add(16)
+    if (ficha.tipo_terreno === "rural")  toFill.add(15)
+    // IFC — SOLO si rural
+    if (ficha.tipo_terreno === "rural") {
+      if (ficha.ifc === true)  toFill.add(17)
+      if (ficha.ifc === false) toFill.add(18)
+    }
+    // Zonificación — SOLO si urbano
+    if (ficha.tipo_terreno === "urbano") {
+      if (ficha.zonificacion === true)  toFill.add(20)
+      if (ficha.zonificacion === false) toFill.add(19)
+    }
+  }
+
+  // Pladeco
+  if (ficha.pladeco === true)  toFill.add(22)
+  if (ficha.pladeco === false) toFill.add(21)
 
   fetch("/ficha_template.docx")
     .then(res => res.arrayBuffer())
     .then(buffer => JSZip.loadAsync(buffer))
     .then(zip => zip.file("word/document.xml").async("string").then(xml => {
       let modified = xml
-
-      // Cada casilla tiene DOS representaciones en mc:AlternateContent:
-      // 1. mc:Choice > wps:wsp  — Word moderno (tiene <a:noFill/>)
-      // 2. mc:Fallback > v:rect — VML fallback (tiene filled="f")
-      // Modificamos ambas para que funcione en Word y LibreOffice
       const ALT_CLOSE = "</mc:AlternateContent>"
       for (const idx of toFill) {
         const aid = ANCHOR_IDS[idx]
-        const vmlSearch = "w14:anchorId=\"" + aid + "\""
+        const vmlSearch = 'w14:anchorId="' + aid + '"'
         if (modified.includes(vmlSearch)) {
           const vmlPos = modified.indexOf(vmlSearch)
           const altStart = modified.lastIndexOf("<mc:AlternateContent>", vmlPos)
           const altEnd = modified.indexOf(ALT_CLOSE, vmlPos) + ALT_CLOSE.length
           let altBlock = modified.substring(altStart, altEnd)
           altBlock = altBlock.replace("<a:noFill/>", "<a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill>")
-          altBlock = altBlock.replace("filled=\"f\"", "filled=\"t\" fillcolor=\"#000000\"")
+          altBlock = altBlock.replace('filled="f"', 'filled="t" fillcolor="#000000"')
           modified = modified.substring(0, altStart) + altBlock + modified.substring(altEnd)
         }
       }
-
       zip.file("word/document.xml", modified)
       return zip.generateAsync({
         type: "blob",
