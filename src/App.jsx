@@ -528,7 +528,7 @@ export default function App() {
               <p className="text-white font-black text-xl tracking-widest">MOLINA</p>
               <p className="text-blue-200 text-xs">Tierra que Enamora</p>
             </div>
-            <p className="text-blue-200 text-xs mt-1.5 tracking-wide">SECPLAN — Sistema de Gestión de Proyectos</p>
+            <p className="text-blue-200 text-xs mt-1.5 tracking-wide">SECPLAN — Cartera de Proyectos</p>
           </div>
 
           {/* Nuevo proyecto — esquina derecha */}
