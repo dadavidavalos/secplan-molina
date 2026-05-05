@@ -518,8 +518,8 @@ export default function App() {
 
           {/* Logo centrado */}
           <div className="flex flex-col items-center justify-center h-full py-3">
-            <img src="/imagen_transparente_molina.png" alt="Municipalidad de Molina"
-              style={{ height: 72, objectFit: 'contain', filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.2))' }}
+            <img src="/imagen_transparente_molina2.png" alt="Municipalidad de Molina"
+              style={{ height: 72, objectFit: 'contain' }}
               onError={e => {
                 e.target.style.display = 'none'
                 e.target.nextSibling.style.display = 'flex'
