@@ -104,10 +104,10 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
     setSubiendo(true)
     const ext = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-    const { error } = await supabase.storage.from('proyectos').upload(fileName, file, { upsert: true })
+    const { error } = await supabase.storage.from('Proyectos').upload(fileName, file, { upsert: true })
     setSubiendo(false)
     if (error) { setError('Error subiendo imagen: ' + error.message); return null }
-    const { data } = supabase.storage.from('proyectos').getPublicUrl(fileName)
+    const { data } = supabase.storage.from('Proyectos').getPublicUrl(fileName)
     return data.publicUrl
   }
 
