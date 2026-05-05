@@ -55,6 +55,9 @@ const PROYECTO_INICIAL = {
   tipo_fondo: "",
   tipo_fondo_otro: "",
   moneda: "CLP",
+  moneda_presupuesto: "CLP",
+  moneda_cotizado: "CLP",
+  moneda_asignado: "CLP",
   presupuesto: "",
   monto_cotizado: "",
   monto_asignado: "",
@@ -115,7 +118,9 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
       descripcion: proyecto.descripcion,
       financiador: proyecto.financiador,
       fondo: tipoFondoFinal,
-      moneda: proyecto.moneda,
+      moneda: proyecto.moneda_presupuesto,
+      moneda_cotizado: proyecto.moneda_cotizado,
+      moneda_asignado: proyecto.moneda_asignado,
       presupuesto: proyecto.presupuesto,
       monto_cotizado: proyecto.monto_cotizado,
       asignado: proyecto.monto_asignado,
@@ -333,28 +338,26 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
           {/* ─── PASO 3: FINANCIAMIENTO ─── */}
           {paso === 3 && (
             <div className="space-y-5">
-              <Campo label="Moneda">
-                <div className="flex gap-3">
-                  {[["CLP", "Pesos chilenos ($)"], ["UTM", "Unidades Tributarias (UTM)"]].map(([v, label]) => (
-                    <button key={v} onClick={() => setP("moneda", v)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${proyecto.moneda === v ? "bg-slate-900 border-slate-900 text-white" : "border-gray-200 text-gray-600 hover:border-slate-300"}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </Campo>
 
               {[
-                ["presupuesto", "Presupuesto máximo", "Monto máximo que puede financiar el organismo"],
-                ["monto_cotizado", "Monto cotizado", "Lo que necesitamos para ejecutar el proyecto"],
-                ["monto_asignado", "Monto asignado", "Lo que finalmente fue asignado al proyecto"],
-              ].map(([key, label, hint]) => (
-                <Campo key={key} label={`${label} (${proyecto.moneda === "CLP" ? "$" : "UTM"})`}>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
-                      {proyecto.moneda === "CLP" ? "$" : "UTM"}
-                    </span>
-                    <input className="input pl-10" placeholder="0" type="number" min="0"
+                ["presupuesto", "moneda_presupuesto", "Presupuesto máximo", "Monto máximo que puede financiar el organismo"],
+                ["monto_cotizado", "moneda_cotizado", "Monto cotizado", "Lo que necesitamos para ejecutar el proyecto"],
+                ["monto_asignado", "moneda_asignado", "Monto asignado", "Lo que finalmente fue asignado al proyecto"],
+              ].map(([key, monedaKey, label, hint]) => (
+                <Campo key={key} label={label}>
+                  <div className="flex gap-2">
+                    {/* Selector unidad */}
+                    <div className="flex border border-gray-200 rounded-xl overflow-hidden flex-shrink-0">
+                      {[["$", "CLP"], ["UTM", "UTM"]].map(([sym, val]) => (
+                        <button key={val} type="button"
+                          onClick={() => setP(monedaKey, val)}
+                          className={`px-3 py-2 text-sm font-semibold transition-all ${proyecto[monedaKey] === val ? "bg-slate-900 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
+                          {sym}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Input monto */}
+                    <input className="input flex-1" placeholder="0" type="number" min="0"
                       value={proyecto[key]} onChange={(e) => setP(key, e.target.value)} />
                   </div>
                   <p className="text-xs text-gray-400 mt-1">{hint}</p>
@@ -366,16 +369,14 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
                   <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-3">Resumen financiero</p>
                   <div className="space-y-2">
                     {[
-                      ["Presupuesto máx.", proyecto.presupuesto],
-                      ["Monto cotizado", proyecto.monto_cotizado],
-                      ["Monto asignado", proyecto.monto_asignado],
-                    ].map(([l, v]) => v ? (
+                      ["Presupuesto máx.", proyecto.presupuesto, proyecto.moneda_presupuesto],
+                      ["Monto cotizado",   proyecto.monto_cotizado, proyecto.moneda_cotizado],
+                      ["Monto asignado",   proyecto.monto_asignado, proyecto.moneda_asignado],
+                    ].map(([l, v, m]) => v ? (
                       <div key={l} className="flex justify-between text-sm">
                         <span className="text-amber-700">{l}</span>
                         <span className="font-semibold text-amber-900">
-                          {proyecto.moneda === "CLP"
-                            ? `$${Number(v).toLocaleString("es-CL")}`
-                            : `${Number(v).toLocaleString("es-CL")} UTM`}
+                          {m === "CLP" ? `$${Number(v).toLocaleString("es-CL")}` : `${Number(v).toLocaleString("es-CL")} UTM`}
                         </span>
                       </div>
                     ) : null)}
