@@ -138,13 +138,11 @@ const IconLayers = () => (
 )
 
 // ─── Nav item sidebar ─────────────────────────────────────────────────────
-function NavItem({ label, active, onClick, indent, dot }) {
+function NavItem({ label, active, onClick, indent, dot, expanded, hasChildren, onToggle }) {
   return (
-    <button onClick={onClick}
+    <button onClick={hasChildren ? onToggle : onClick}
       className={`w-full text-left flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${indent ? 'pl-5' : ''}`}
-      style={active
-        ? { background: '#111827', color: 'white', fontWeight: 600 }
-        : { color: '#6B7280' }}
+      style={active ? { background: '#111827', color: 'white', fontWeight: 600 } : { color: '#6B7280' }}
       onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.color = '#111827' }}}
       onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6B7280' }}}>
       {dot && (
@@ -155,7 +153,13 @@ function NavItem({ label, active, onClick, indent, dot }) {
         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
           style={{ background: active ? 'white' : '#D1D5DB' }} />
       )}
-      <span className="truncate">{label}</span>
+      <span className="flex-1 truncate">{label}</span>
+      {hasChildren && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s', flexShrink: 0 }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      )}
     </button>
   )
 }
@@ -404,32 +408,69 @@ export default function App() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
 
-          {/* Fondo */}
+          {/* Fondo único bloque con subfiltro inline */}
           <div>
             <p className="text-xs font-black uppercase tracking-widest text-gray-400 px-3 mb-2">Fondo</p>
-            <NavItem label="Todos" active={filtroFondo === 'Todos'} onClick={() => cambiarFondo('Todos')} />
-            {FONDOS_GRANDES.map(f => (
-              <NavItem key={f} label={f} active={filtroFondo === f} onClick={() => cambiarFondo(f)} dot />
-            ))}
-          </div>
-
-          {/* Tipo de fondo */}
-          <div>
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400 px-3 mb-2">Tipo de fondo</p>
-            <NavItem label="Todos" active={filtroTipo === 'Todos'} onClick={() => setFiltroTipo('Todos')} indent />
-            {tiposDisponibles.map(t => (
-              <NavItem key={t} label={t} active={filtroTipo === t} onClick={() => setFiltroTipo(t)} indent />
-            ))}
+            <NavItem label="Todos" active={filtroFondo === 'Todos'}
+              onClick={() => cambiarFondo('Todos')} />
+            {FONDOS_GRANDES.map(f => {
+              const tipos = TIPOS_POR_FONDO[f] || []
+              const isActive = filtroFondo === f
+              return (
+                <div key={f}>
+                  <NavItem label={f} active={isActive} dot onClick={() => cambiarFondo(f)} />
+                  {isActive && tipos.length > 0 && (
+                    <div className="mx-2 mt-1 mb-2 rounded-xl overflow-hidden"
+                      style={{ border: '1px solid #E5E7EB', background: '#F9FAFB' }}>
+                      <p className="text-xs font-black uppercase tracking-widest text-gray-400 px-3 pt-2.5 pb-1.5">
+                        Tipo de fondo
+                      </p>
+                      <div className="px-1.5 pb-2">
+                        <button
+                          onClick={() => setFiltroTipo('Todos')}
+                          className="w-full text-left flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+                          style={filtroTipo === 'Todos'
+                            ? { background: '#111827', color: 'white', fontWeight: 600 }
+                            : { color: '#6B7280' }}
+                          onMouseEnter={e => { if (filtroTipo !== 'Todos') { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.color = '#111827' }}}
+                          onMouseLeave={e => { if (filtroTipo !== 'Todos') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6B7280' }}}>
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ background: filtroTipo === 'Todos' ? 'white' : '#D1D5DB' }} />
+                          Todos
+                        </button>
+                        {tipos.map(t => {
+                          const col = FONDOS_COLORES[t]?.bg || '#64748B'
+                          return (
+                            <button key={t}
+                              onClick={() => setFiltroTipo(t)}
+                              className="w-full text-left flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+                              style={filtroTipo === t
+                                ? { background: '#111827', color: 'white', fontWeight: 600 }
+                                : { color: '#6B7280' }}
+                              onMouseEnter={e => { if (filtroTipo !== t) { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.color = '#111827' }}}
+                              onMouseLeave={e => { if (filtroTipo !== t) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6B7280' }}}>
+                              <span className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ background: filtroTipo === t ? 'white' : col }} />
+                              <span className="truncate">{t}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           {/* Prioridad */}
           <div>
             <p className="text-xs font-black uppercase tracking-widest text-gray-400 px-3 mb-2">Prioridad</p>
             {prioridades.map(p => (
-              <NavItem key={p} label={p} active={filtroPrioridad === p} onClick={() => setFiltroPrioridad(p)}
-                dot={p !== 'Todas'} indent />
+              <NavItem key={p} label={p} active={filtroPrioridad === p}
+                onClick={() => setFiltroPrioridad(p)} dot={p !== 'Todas'} indent />
             ))}
           </div>
 
@@ -465,26 +506,39 @@ export default function App() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* TOPBAR */}
-        <header className="flex-shrink-0 flex items-center gap-4 px-5 shadow-md"
-          style={{ background: `linear-gradient(135deg, ${AZUL_OSC} 0%, ${AZUL} 100%)`, minHeight: 64 }}>
-          <button onClick={() => setSidebarAbierto(v => !v)}
-            className="text-white/60 hover:text-white transition-colors p-1 flex-shrink-0">
-            <IconMenu />
-          </button>
-          {!sidebarAbierto && (
-            <img src="/imagen_transparente_molina.png" alt="Molina"
-              className="object-contain flex-shrink-0" style={{ height: 38 }}
-              onError={e => e.target.style.display = 'none'} />
-          )}
-          <div className="flex-1 text-center">
-            <p className="text-white font-black text-sm tracking-wide">SECPLAN — Municipalidad de Molina</p>
-            <p className="text-blue-200 text-xs">Sistema de Gestión de Proyectos · Región del Maule</p>
+        <header className="flex-shrink-0 relative shadow-lg"
+          style={{ background: `linear-gradient(135deg, ${AZUL_OSC} 0%, ${AZUL} 100%)`, minHeight: 88 }}>
+          {/* Toggle sidebar — esquina izquierda */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-3 z-10">
+            <button onClick={() => setSidebarAbierto(v => !v)}
+              className="text-white/60 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10">
+              <IconMenu />
+            </button>
           </div>
-          <button onClick={() => setMostrarForm(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white flex-shrink-0 shadow-md transition-all hover:scale-[1.03] active:scale-[0.97]"
-            style={{ background: VERDE }}>
-            <IconPlus /><span>Nuevo proyecto</span>
-          </button>
+
+          {/* Logo centrado */}
+          <div className="flex flex-col items-center justify-center h-full py-3">
+            <img src="/imagen_transparente_molina.png" alt="Municipalidad de Molina"
+              style={{ height: 62, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}
+              onError={e => {
+                e.target.style.display = 'none'
+                e.target.nextSibling.style.display = 'flex'
+              }} />
+            <div style={{ display: 'none' }} className="flex-col items-center">
+              <p className="text-white font-black text-xl tracking-widest">MOLINA</p>
+              <p className="text-blue-200 text-xs">Tierra que Enamora</p>
+            </div>
+            <p className="text-blue-200 text-xs mt-1.5 tracking-wide">SECPLAN — Sistema de Gestión de Proyectos</p>
+          </div>
+
+          {/* Nuevo proyecto — esquina derecha */}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+            <button onClick={() => setMostrarForm(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:scale-[1.03] active:scale-[0.97]"
+              style={{ background: VERDE }}>
+              <IconPlus /><span>Nuevo proyecto</span>
+            </button>
+          </div>
         </header>
 
         {/* MAIN */}
