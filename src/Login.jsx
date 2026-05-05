@@ -185,12 +185,7 @@ export default function Login() {
               </button>
 
               <p className="text-center text-xs text-gray-400">
-                {esRegistro ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}{' '}
-                <button onClick={() => setEsRegistro(!esRegistro)}
-                  className="font-bold hover:underline"
-                  style={{ color: '#1B3F8B' }}>
-                  {esRegistro ? 'Inicia sesión' : 'Regístrate'}
-                </button>
+                Acceso solo para personal autorizado de SECPLAN Molina
               </p>
             </div>
           </div>
