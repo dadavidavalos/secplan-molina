@@ -66,7 +66,7 @@ export default function Login() {
 
         {/* Logo SECPLAN */}
         <div className="mb-6">
-          <img src="/imagen_transparente_molina.png" alt="SECPLAN Molina"
+          <img src="/imagen_transparente_molina2.png" alt="SECPLAN Molina"
             style={{ height: 100, objectFit: 'contain', filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))' }}
             onError={e => e.target.style.display = 'none'} />
         </div>
@@ -136,7 +136,7 @@ export default function Login() {
             {/* Header modal */}
             <div className="px-8 pt-8 pb-5 text-center"
               style={{ background: 'linear-gradient(135deg, #0F2554 0%, #1B3F8B 100%)' }}>
-              <img src="/imagen_transparente_molina.png" alt="SECPLAN"
+              <img src="/imagen_transparente_molina2.png" alt="SECPLAN"
                 style={{ height: 56, objectFit: 'contain', margin: '0 auto 12px' }}
                 onError={e => e.target.style.display = 'none'} />
               <h2 className="text-white font-black text-lg tracking-wide">
