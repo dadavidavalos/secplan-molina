@@ -507,7 +507,7 @@ export default function App() {
 
         {/* TOPBAR */}
         <header className="flex-shrink-0 relative shadow-lg"
-          style={{ background: `linear-gradient(135deg, ${AZUL_OSC} 0%, ${AZUL} 100%)`, minHeight: 88 }}>
+          style={{ background: `linear-gradient(135deg, ${AZUL_OSC} 0%, ${AZUL} 100%)`, minHeight: 110 }}>
           {/* Toggle sidebar — esquina izquierda */}
           <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-3 z-10">
             <button onClick={() => setSidebarAbierto(v => !v)}
@@ -519,7 +519,7 @@ export default function App() {
           {/* Logo centrado */}
           <div className="flex flex-col items-center justify-center h-full py-3">
             <img src="/imagen_transparente_molina.png" alt="Municipalidad de Molina"
-              style={{ height: 62, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}
+              style={{ height: 86, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' }}
               onError={e => {
                 e.target.style.display = 'none'
                 e.target.nextSibling.style.display = 'flex'
