@@ -27,10 +27,9 @@ export default function AdminPanel({ onCerrar }) {
     setCreando(true)
     setMensaje('')
 
-    const { data, error } = await supabase.auth.admin.createUser({
+    const { data, error } = await supabase.auth.signUp({
       email: nuevoEmail,
       password: nuevaPassword,
-      email_confirm: true,
     })
 
     if (error) {
