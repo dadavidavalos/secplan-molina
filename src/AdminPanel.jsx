@@ -27,9 +27,10 @@ export default function AdminPanel({ onCerrar }) {
     setCreando(true)
     setMensaje('')
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.admin.createUser({
       email: nuevoEmail,
       password: nuevaPassword,
+      email_confirm: true,
     })
 
     if (error) {
@@ -55,13 +56,29 @@ export default function AdminPanel({ onCerrar }) {
   }
 
   async function eliminarUsuario(id) {
+    // Verificar que no sea el último admin
+    const esteEsAdmin = usuarios.find(u => u.id === id)?.rol === 'admin'
+    const admins = usuarios.filter(u => u.rol === 'admin')
+    if (esteEsAdmin && admins.length <= 1) {
+      alert('No puedes eliminar al último administrador. Primero asigna otro administrador.')
+      return
+    }
     if (!confirm('¿Eliminar este usuario?')) return
     await supabase.from('Usuarios').delete().eq('id', id)
     cargarUsuarios()
   }
 
-  async function cambiarRol(id, rol) {
-    await supabase.from('Usuarios').update({ rol }).eq('id', id)
+  async function cambiarRol(id, rolNuevo) {
+    // Verificar que no sea el último admin
+    if (rolNuevo !== 'admin') {
+      const admins = usuarios.filter(u => u.rol === 'admin')
+      const esteEsAdmin = usuarios.find(u => u.id === id)?.rol === 'admin'
+      if (esteEsAdmin && admins.length <= 1) {
+        alert('No puedes quitar el rol de administrador al último admin. Primero asigna otro administrador.')
+        return
+      }
+    }
+    await supabase.from('Usuarios').update({ rol: rolNuevo }).eq('id', id)
     cargarUsuarios()
   }
 
