@@ -27,10 +27,9 @@ export default function AdminPanel({ onCerrar }) {
     setCreando(true)
     setMensaje('')
 
-    const { data, error } = await supabase.auth.admin.createUser({
+    const { data, error } = await supabase.auth.signUp({
       email: nuevoEmail,
       password: nuevaPassword,
-      email_confirm: true,
     })
 
     if (error) {
@@ -56,20 +55,39 @@ export default function AdminPanel({ onCerrar }) {
   }
 
   async function eliminarUsuario(id) {
-    // Verificar que no sea el último admin
+    // Protección: no eliminar último admin
     const esteEsAdmin = usuarios.find(u => u.id === id)?.rol === 'admin'
     const admins = usuarios.filter(u => u.rol === 'admin')
     if (esteEsAdmin && admins.length <= 1) {
       alert('No puedes eliminar al último administrador. Primero asigna otro administrador.')
       return
     }
-    if (!confirm('¿Eliminar este usuario?')) return
-    await supabase.from('Usuarios').delete().eq('id', id)
+    if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return
+
+    setMensaje('')
+    // Llamar Edge Function que elimina de auth.users (y en cascada de Usuarios)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ user_id: id }),
+      }
+    )
+    const result = await res.json()
+    if (!res.ok) {
+      setMensaje('Error: ' + (result.error || 'No se pudo eliminar'))
+      return
+    }
+    setMensaje('✓ Usuario eliminado correctamente')
     cargarUsuarios()
   }
 
   async function cambiarRol(id, rolNuevo) {
-    // Verificar que no sea el último admin
     if (rolNuevo !== 'admin') {
       const admins = usuarios.filter(u => u.rol === 'admin')
       const esteEsAdmin = usuarios.find(u => u.id === id)?.rol === 'admin'
