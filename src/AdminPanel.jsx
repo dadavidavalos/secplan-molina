@@ -27,6 +27,10 @@ export default function AdminPanel({ onCerrar }) {
     setCreando(true)
     setMensaje('')
 
+    // 1. Guardar sesión actual del admin ANTES de hacer signUp
+    const { data: { session: sessionAdmin } } = await supabase.auth.getSession()
+
+    // 2. Crear el nuevo usuario (esto cambia la sesión en el navegador)
     const { data, error } = await supabase.auth.signUp({
       email: nuevoEmail,
       password: nuevaPassword,
@@ -38,12 +42,21 @@ export default function AdminPanel({ onCerrar }) {
       return
     }
 
+    // 3. Insertar en tabla Usuarios
     await supabase.from('Usuarios').insert([{
       id: data.user.id,
       email: nuevoEmail,
       nombre: nuevoNombre,
       rol: nuevoRol,
     }])
+
+    // 4. Restaurar sesión del admin inmediatamente
+    if (sessionAdmin) {
+      await supabase.auth.setSession({
+        access_token: sessionAdmin.access_token,
+        refresh_token: sessionAdmin.refresh_token,
+      })
+    }
 
     setMensaje('✓ Usuario creado exitosamente')
     setNuevoEmail('')
