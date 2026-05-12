@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase'
 import Login from './Login'
 import EditarProyecto from './EditarProyecto'
@@ -127,6 +127,13 @@ const IconChart = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
     <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+  </svg>
+)
+const IconDownload = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
   </svg>
 )
 const IconLayers = () => (
@@ -324,6 +331,14 @@ export default function App() {
   const [proyectoEditando, setProyectoEditando] = useState(null)
   const [proyectoDetalle,  setProyectoDetalle]  = useState(null)
   const [sidebarAbierto,   setSidebarAbierto]   = useState(true)
+  const [menuExportar,     setMenuExportar]     = useState(false)
+
+  useEffect(() => {
+    if (!menuExportar) return
+    const handler = () => setMenuExportar(false)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [menuExportar])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSesion(session))
@@ -351,6 +366,172 @@ export default function App() {
     if (!confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) return
     await supabase.from('Proyectos').delete().eq('id', id)
     cargarProyectos()
+  }
+
+  // ─── Exportar Excel ──────────────────────────────────────────────────────
+  async function exportarExcel() {
+    const XLSX = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm')
+    const fecha = new Date().toLocaleDateString('es-CL')
+
+    const filas = proyectosFiltrados.map((p, i) => ({
+      'N°':           i + 1,
+      'Proyecto':     p.nombre || '—',
+      'Descripción':  p.descripcion || '—',
+      'Financiador':  p.financiador || '—',
+      'Fondo':        p.fondo || '—',
+      'Estado':       p.estado || '—',
+      'Prioridad':    p.prioridad || '—',
+      'Avance (%)':   p.avance ?? 0,
+      'Encargado':    p.encargado || '—',
+      'Ubicación':    p.ubicacion || '—',
+      'Fecha ingreso':p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL') : '—',
+      'Fecha inicio': p.fecha_inicio || '—',
+      'Fecha cierre': p.fecha_cierre || '—',
+      'Presupuesto':  p.presupuesto ? `${p.presupuesto} ${p.moneda || ''}` : '—',
+      'Monto cotizado': p.monto_cotizado ? `${p.monto_cotizado} ${p.moneda_cotizado || ''}` : '—',
+      'Monto asignado': p.asignado ? `${p.asignado} ${p.moneda_asignado || ''}` : '—',
+      'Link Drive':   p.link_drive || '—',
+    }))
+
+    const wb = XLSX.utils.book_new()
+
+    // Hoja 1: Proyectos
+    const ws = XLSX.utils.json_to_sheet(filas)
+    // Ancho de columnas
+    ws['!cols'] = [
+      { wch: 4 }, { wch: 30 }, { wch: 35 }, { wch: 20 }, { wch: 14 },
+      { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 25 },
+      { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 18 },
+      { wch: 18 }, { wch: 35 },
+    ]
+    XLSX.utils.book_append_sheet(wb, ws, 'Proyectos')
+
+    // Hoja 2: Resumen
+    const resumen = [
+      ['SECPLAN — Cartera de Proyectos', ''],
+      ['Municipalidad de Molina', ''],
+      ['Fecha exportación', fecha],
+      ['', ''],
+      ['RESUMEN', ''],
+      ['Total proyectos', proyectosFiltrados.length],
+      ['', ''],
+      ['POR FINANCIADOR', ''],
+      ...FONDOS_GRANDES.map(f => [f, proyectosFiltrados.filter(p => p.financiador === f).length]),
+      ['', ''],
+      ['POR PRIORIDAD', ''],
+      ...['Alta', 'Media', 'Baja'].map(pr => [pr, proyectosFiltrados.filter(p => p.prioridad === pr).length]),
+      ['', ''],
+      ['POR ESTADO', ''],
+      ...Object.keys(ESTADOS_COLORES).map(e => [e, proyectosFiltrados.filter(p => p.estado === e).length]).filter(([, c]) => c > 0),
+    ]
+    const ws2 = XLSX.utils.aoa_to_sheet(resumen)
+    ws2['!cols'] = [{ wch: 28 }, { wch: 12 }]
+    XLSX.utils.book_append_sheet(wb, ws2, 'Resumen')
+
+    XLSX.writeFile(wb, `SECPLAN_Cartera_${fecha.replace(/\//g, '-')}.xlsx`)
+  }
+
+  // ─── Exportar PDF ────────────────────────────────────────────────────────
+  async function exportarPDF() {
+    const { default: jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm')
+    const { default: autoTable } = await import('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/+esm')
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+    const fecha = new Date().toLocaleDateString('es-CL')
+    const azul = [27, 63, 139]
+    const verde = [141, 198, 63]
+    const W = doc.internal.pageSize.getWidth()
+
+    // Header
+    doc.setFillColor(...azul)
+    doc.rect(0, 0, W, 22, 'F')
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text('SECPLAN', 14, 10)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Municipalidad de Molina · Región del Maule', 14, 16)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Cartera de Proyectos', W / 2, 13, { align: 'center' })
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Generado: ${fecha}`, W - 14, 10, { align: 'right' })
+    doc.text(`Total: ${proyectosFiltrados.length} proyectos`, W - 14, 16, { align: 'right' })
+
+    // KPIs
+    const kpis = [
+      ['Total', proyectosFiltrados.length],
+      ['GORE', proyectosFiltrados.filter(p => p.financiador === 'GORE').length],
+      ['SUBDERE', proyectosFiltrados.filter(p => p.financiador === 'SUBDERE').length],
+      ['Alta prioridad', proyectosFiltrados.filter(p => p.prioridad === 'Alta').length],
+      ['Avance prom.', Math.round(proyectosFiltrados.reduce((s, p) => s + (p.avance || 0), 0) / (proyectosFiltrados.length || 1)) + '%'],
+    ]
+    const kpiW = (W - 28) / kpis.length
+    kpis.forEach(([lbl, val], i) => {
+      const x = 14 + i * kpiW
+      doc.setFillColor(245, 247, 252)
+      doc.roundedRect(x, 26, kpiW - 3, 14, 2, 2, 'F')
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...azul)
+      doc.text(String(val), x + (kpiW - 3) / 2, 35, { align: 'center' })
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(120, 120, 120)
+      doc.text(lbl, x + (kpiW - 3) / 2, 39, { align: 'center' })
+    })
+
+    // Tabla
+    const cols = ['N°', 'Proyecto', 'Financiador', 'Fondo', 'Estado', 'Prioridad', 'Avance', 'Encargado', 'Ubicación']
+    const rows = proyectosFiltrados.map((p, i) => [
+      i + 1,
+      p.nombre || '—',
+      p.financiador || '—',
+      p.fondo || '—',
+      p.estado || '—',
+      p.prioridad || '—',
+      `${p.avance ?? 0}%`,
+      p.encargado || '—',
+      p.ubicacion ? p.ubicacion.substring(0, 22) : '—',
+    ])
+
+    autoTable(doc, {
+      head: [cols],
+      body: rows,
+      startY: 44,
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 8, cellPadding: 2.5, overflow: 'ellipsize' },
+      headStyles: { fillColor: azul, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      alternateRowStyles: { fillColor: [245, 248, 252] },
+      columnStyles: {
+        0: { cellWidth: 8 },
+        1: { cellWidth: 45 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 26 },
+        5: { cellWidth: 18 },
+        6: { cellWidth: 14 },
+        7: { cellWidth: 22 },
+        8: { cellWidth: 'auto' },
+      },
+    })
+
+    // Footer en cada página
+    const pageCount = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFillColor(...azul)
+      doc.rect(0, doc.internal.pageSize.getHeight() - 8, W, 8, 'F')
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(255, 255, 255)
+      doc.text('SECPLAN — Municipalidad de Molina', 14, doc.internal.pageSize.getHeight() - 3)
+      doc.text(`Página ${i} de ${pageCount}`, W - 14, doc.internal.pageSize.getHeight() - 3, { align: 'right' })
+    }
+
+    doc.save(`SECPLAN_Cartera_${fecha.replace(/\//g, '-')}.pdf`)
   }
 
   const esAdmin = usuarioData?.rol === 'admin'
@@ -531,8 +712,44 @@ export default function App() {
             <p className="text-blue-200 text-xs mt-1.5 tracking-wide">SECPLAN — Cartera de Proyectos</p>
           </div>
 
-          {/* Nuevo proyecto — esquina derecha */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+          {/* Botones — esquina derecha */}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex items-center gap-2">
+            {/* Exportar */}
+            <div className="relative">
+              <button onClick={(e) => { e.stopPropagation(); setMenuExportar(v => !v) }}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:scale-[1.03] active:scale-[0.97]"
+                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)' }}>
+                <IconDownload /><span>Exportar</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+                  style={{ transform: menuExportar ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {menuExportar && (
+                <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl overflow-hidden z-50"
+                  style={{ minWidth: 160, border: '.5px solid #E5E7EB' }}>
+                  <button onClick={() => { exportarExcel(); setMenuExportar(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-gray-50"
+                    style={{ color: '#217346', borderBottom: '.5px solid #F3F4F6' }}>
+                    <span style={{ fontSize: 16 }}>📊</span>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-xs">Excel (.xlsx)</p>
+                      <p className="text-xs text-gray-400">Editable, con resumen</p>
+                    </div>
+                  </button>
+                  <button onClick={() => { exportarPDF(); setMenuExportar(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-gray-50"
+                    style={{ color: '#991B1B' }}>
+                    <span style={{ fontSize: 16 }}>📄</span>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-xs">PDF</p>
+                      <p className="text-xs text-gray-400">Formal, con KPIs</p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Nuevo proyecto */}
             <button onClick={() => setMostrarForm(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:scale-[1.03] active:scale-[0.97]"
               style={{ background: VERDE }}>
