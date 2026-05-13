@@ -433,9 +433,23 @@ export default function App() {
 
   // ─── Exportar PDF ────────────────────────────────────────────────────────
   async function exportarPDF() {
-    const { default: jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm')
-    const { default: autoTable } = await import('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/+esm')
-
+    if (!window.jspdf) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script')
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+        s.onload = res; s.onerror = rej
+        document.head.appendChild(s)
+      })
+    }
+    if (!window.jspdf?.jsPDF?.prototype?.autoTable) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script')
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+        s.onload = res; s.onerror = rej
+        document.head.appendChild(s)
+      })
+    }
+    const { jsPDF } = window.jspdf
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
     const fecha = new Date().toLocaleDateString('es-CL')
     const azul = [27, 63, 139]
@@ -497,7 +511,7 @@ export default function App() {
       p.ubicacion ? p.ubicacion.substring(0, 22) : '—',
     ])
 
-    autoTable(doc, {
+    doc.autoTable({
       head: [cols],
       body: rows,
       startY: 44,
