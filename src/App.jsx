@@ -75,6 +75,13 @@ const PRIORIDAD_COLORES = {
   Baja:  { bg: '#22C55E', text: '#fff' },
 }
 
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return [r, g, b]
+}
+
 function getFondoColor(p) {
   return FONDOS_COLORES[p.fondo] || FONDOS_COLORES[p.financiador] || FONDOS_COLORES['default']
 }
@@ -373,59 +380,94 @@ export default function App() {
     const XLSX = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm')
     const fecha = new Date().toLocaleDateString('es-CL')
 
-    const filas = proyectosFiltrados.map((p, i) => ({
-      'N°':           i + 1,
-      'Proyecto':     p.nombre || '—',
-      'Descripción':  p.descripcion || '—',
-      'Financiador':  p.financiador || '—',
-      'Fondo':        p.fondo || '—',
-      'Estado':       p.estado || '—',
-      'Prioridad':    p.prioridad || '—',
-      'Avance (%)':   p.avance ?? 0,
-      'Encargado':    p.encargado || '—',
-      'Ubicación':    p.ubicacion || '—',
-      'Fecha ingreso':p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL') : '—',
-      'Fecha inicio': p.fecha_inicio || '—',
-      'Fecha cierre': p.fecha_cierre || '—',
-      'Presupuesto':  p.presupuesto ? `${p.presupuesto} ${p.moneda || ''}` : '—',
-      'Monto cotizado': p.monto_cotizado ? `${p.monto_cotizado} ${p.moneda_cotizado || ''}` : '—',
-      'Monto asignado': p.asignado ? `${p.asignado} ${p.moneda_asignado || ''}` : '—',
-      'Link Drive':   p.link_drive || '—',
+    // Orden de financiadores y tipos dentro de cada uno
+    const ORDEN_FINANCIADORES = ['GORE', 'SUBDERE', 'Fondos Sectoriales', 'Municipal (Fondos Propios)', 'Otro']
+    const ORDEN_TIPOS = {
+      'GORE':                 ['FNDR', 'FRIL', '-5000 UTM', 'Circular 33', 'FNDR 8% (Subvenciones actividades)', 'Financiamiento para Programas', 'FRPD'],
+      'SUBDERE':              ['PMU (Mejoramiento Urbano)', 'PMB (Mejoramiento de Barrios)', 'PTRAC (Tenencia Responsable)', 'PRBIPE (Revitalización de Barrios)'],
+      'Fondos Sectoriales':   ['MINVU - Pavimentación Participativa', 'MINVU - Espacios Públicos'],
+      'Municipal (Fondos Propios)': ['Presupuesto Municipal'],
+      'Otro':                 [],
+    }
+
+    // Ordenar proyectos: primero por financiador, luego por tipo de fondo
+    const proyectosOrdenados = [...proyectosFiltrados].sort((a, b) => {
+      const fi = ORDEN_FINANCIADORES.indexOf(a.financiador ?? 'Otro')
+      const fj = ORDEN_FINANCIADORES.indexOf(b.financiador ?? 'Otro')
+      if (fi !== fj) return fi - fj
+      const tipos = ORDEN_TIPOS[a.financiador] || []
+      const ti = tipos.indexOf(a.fondo ?? '')
+      const tj = tipos.indexOf(b.fondo ?? '')
+      if (ti === -1 && tj === -1) return 0
+      if (ti === -1) return 1
+      if (tj === -1) return -1
+      return ti - tj
+    })
+
+    const filas = proyectosOrdenados.map((p, i) => ({
+      'N°':             i + 1,
+      'Proyecto':       p.nombre || '—',
+      'Descripción':    p.descripcion || '—',
+      'Financiador':    p.financiador || '—',
+      'Fondo':          p.financiador === 'Otro' ? (p.fondo || '—') : (p.fondo || '—'),
+      'Estado':         p.estado || '—',
+      'Prioridad':      p.prioridad || '—',
+      'Avance (%)':     p.avance ?? 0,
+      'Encargado':      p.encargado || '—',
+      'Ubicación':      p.ubicacion || '—',
+      'Fecha ingreso':  p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL') : '—',
+      'Fecha inicio':   p.fecha_inicio || '—',
+      'Fecha cierre':   p.fecha_cierre || '—',
+      'Presupuesto':    p.presupuesto ? `${p.presupuesto} ${p.moneda || ''}` : '—',
+      'Monto asignado': p.asignado ? `${p.asignado} ${p.moneda || ''}` : '—',
+      'Link Drive':     p.link_drive || '—',
     }))
 
     const wb = XLSX.utils.book_new()
 
-    // Hoja 1: Proyectos
+    // Hoja 1: Proyectos ordenados
     const ws = XLSX.utils.json_to_sheet(filas)
-    // Ancho de columnas
     ws['!cols'] = [
-      { wch: 4 }, { wch: 30 }, { wch: 35 }, { wch: 20 }, { wch: 14 },
-      { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 25 },
-      { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 18 },
-      { wch: 18 }, { wch: 35 },
+      { wch: 4 }, { wch: 30 }, { wch: 35 }, { wch: 22 }, { wch: 30 },
+      { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 28 },
+      { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 35 },
     ]
     XLSX.utils.book_append_sheet(wb, ws, 'Proyectos')
 
-    // Hoja 2: Resumen
+    // Hoja 2: Resumen igual que los KPIs de la página
+    const totalProyectos = proyectosFiltrados.length
+    const avanceProm = totalProyectos > 0
+      ? Math.round(proyectosFiltrados.reduce((s, p) => s + (p.avance || 0), 0) / totalProyectos)
+      : 0
+
     const resumen = [
-      ['SECPLAN — Cartera de Proyectos', ''],
-      ['Municipalidad de Molina', ''],
-      ['Fecha exportación', fecha],
-      ['', ''],
-      ['RESUMEN', ''],
-      ['Total proyectos', proyectosFiltrados.length],
-      ['', ''],
-      ['POR FINANCIADOR', ''],
-      ...FONDOS_GRANDES.map(f => [f, proyectosFiltrados.filter(p => p.financiador === f).length]),
-      ['', ''],
-      ['POR PRIORIDAD', ''],
-      ...['Alta', 'Media', 'Baja'].map(pr => [pr, proyectosFiltrados.filter(p => p.prioridad === pr).length]),
-      ['', ''],
-      ['POR ESTADO', ''],
-      ...Object.keys(ESTADOS_COLORES).map(e => [e, proyectosFiltrados.filter(p => p.estado === e).length]).filter(([, c]) => c > 0),
+      ['SECPLAN — Cartera de Proyectos', '', ''],
+      ['Municipalidad de Molina', '', ''],
+      [`Fecha exportación: ${fecha}`, '', ''],
+      ['', '', ''],
+      ['TOTAL DE PROYECTOS', totalProyectos, ''],
+      [`Avance promedio: ${avanceProm}%`, '', ''],
+      ['', '', ''],
+      ['POR FONDO (Financiador)', 'Cantidad', '% del total'],
+      ...FONDOS_GRANDES.map(f => {
+        const cnt = proyectosFiltrados.filter(p => p.financiador === f).length
+        return [f, cnt, totalProyectos > 0 ? Math.round(cnt / totalProyectos * 100) + '%' : '0%']
+      }).filter(([, c]) => c > 0),
+      ['', '', ''],
+      ['POR PRIORIDAD', 'Cantidad', '% del total'],
+      ...['Alta', 'Media', 'Baja'].map(pr => {
+        const cnt = proyectosFiltrados.filter(p => p.prioridad === pr).length
+        return [pr, cnt, totalProyectos > 0 ? Math.round(cnt / totalProyectos * 100) + '%' : '0%']
+      }),
+      ['', '', ''],
+      ['POR ESTADO', 'Cantidad', '% del total'],
+      ...Object.keys(ESTADOS_COLORES).map(e => {
+        const cnt = proyectosFiltrados.filter(p => p.estado === e).length
+        return [e, cnt, totalProyectos > 0 ? Math.round(cnt / totalProyectos * 100) + '%' : '0%']
+      }).filter(([, c]) => c > 0),
     ]
     const ws2 = XLSX.utils.aoa_to_sheet(resumen)
-    ws2['!cols'] = [{ wch: 28 }, { wch: 12 }]
+    ws2['!cols'] = [{ wch: 32 }, { wch: 12 }, { wch: 14 }]
     XLSX.utils.book_append_sheet(wb, ws2, 'Resumen')
 
     XLSX.writeFile(wb, `SECPLAN_Cartera_${fecha.replace(/\//g, '-')}.xlsx`)
@@ -453,96 +495,163 @@ export default function App() {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
     const fecha = new Date().toLocaleDateString('es-CL')
     const azul = [27, 63, 139]
-    const verde = [141, 198, 63]
     const W = doc.internal.pageSize.getWidth()
+    const H = doc.internal.pageSize.getHeight()
 
-    // Header
+    // Orden igual que exportarExcel
+    const ORDEN_FINANCIADORES = ['GORE', 'SUBDERE', 'Fondos Sectoriales', 'Municipal (Fondos Propios)', 'Otro']
+    const ORDEN_TIPOS = {
+      'GORE':                 ['FNDR', 'FRIL', '-5000 UTM', 'Circular 33', 'FNDR 8% (Subvenciones actividades)', 'Financiamiento para Programas', 'FRPD'],
+      'SUBDERE':              ['PMU (Mejoramiento Urbano)', 'PMB (Mejoramiento de Barrios)', 'PTRAC (Tenencia Responsable)', 'PRBIPE (Revitalización de Barrios)'],
+      'Fondos Sectoriales':   ['MINVU - Pavimentación Participativa', 'MINVU - Espacios Públicos'],
+      'Municipal (Fondos Propios)': ['Presupuesto Municipal'],
+      'Otro':                 [],
+    }
+    const proyectosOrdenados = [...proyectosFiltrados].sort((a, b) => {
+      const fi = ORDEN_FINANCIADORES.indexOf(a.financiador ?? 'Otro')
+      const fj = ORDEN_FINANCIADORES.indexOf(b.financiador ?? 'Otro')
+      if (fi !== fj) return fi - fj
+      const tipos = ORDEN_TIPOS[a.financiador] || []
+      const ti = tipos.indexOf(a.fondo ?? '')
+      const tj = tipos.indexOf(b.fondo ?? '')
+      if (ti === -1 && tj === -1) return 0
+      if (ti === -1) return 1
+      if (tj === -1) return -1
+      return ti - tj
+    })
+
+    // ── Header ──
     doc.setFillColor(...azul)
     doc.rect(0, 0, W, 22, 'F')
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255)
     doc.text('SECPLAN', 14, 10)
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal')
     doc.text('Municipalidad de Molina · Región del Maule', 14, 16)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold')
     doc.text('Cartera de Proyectos', W / 2, 13, { align: 'center' })
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal')
     doc.text(`Generado: ${fecha}`, W - 14, 10, { align: 'right' })
     doc.text(`Total: ${proyectosFiltrados.length} proyectos`, W - 14, 16, { align: 'right' })
 
-    // KPIs
-    const kpis = [
-      ['Total', proyectosFiltrados.length],
-      ['GORE', proyectosFiltrados.filter(p => p.financiador === 'GORE').length],
-      ['SUBDERE', proyectosFiltrados.filter(p => p.financiador === 'SUBDERE').length],
-      ['Alta prioridad', proyectosFiltrados.filter(p => p.prioridad === 'Alta').length],
-      ['Avance prom.', Math.round(proyectosFiltrados.reduce((s, p) => s + (p.avance || 0), 0) / (proyectosFiltrados.length || 1)) + '%'],
-    ]
-    const kpiW = (W - 28) / kpis.length
-    kpis.forEach(([lbl, val], i) => {
-      const x = 14 + i * kpiW
-      doc.setFillColor(245, 247, 252)
-      doc.roundedRect(x, 26, kpiW - 3, 14, 2, 2, 'F')
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(...azul)
-      doc.text(String(val), x + (kpiW - 3) / 2, 35, { align: 'center' })
-      doc.setFontSize(7)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(120, 120, 120)
-      doc.text(lbl, x + (kpiW - 3) / 2, 39, { align: 'center' })
+    // ── KPIs — mismos 3 bloques que la página ──
+    // Bloque 1: Total de proyectos
+    const totalProyectos = proyectosFiltrados.length
+    const avanceProm = totalProyectos > 0
+      ? Math.round(proyectosFiltrados.reduce((s, p) => s + (p.avance || 0), 0) / totalProyectos)
+      : 0
+
+    let kpiY = 26
+    const kpiH = 28
+    const col1W = 42
+    const col2W = 80
+    const col3W = 80
+    const gap = 4
+
+    // — KPI 1: Total —
+    doc.setFillColor(245, 247, 252)
+    doc.roundedRect(14, kpiY, col1W, kpiH, 2, 2, 'F')
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100)
+    doc.text('TOTAL DE PROYECTOS', 14 + col1W / 2, kpiY + 6, { align: 'center' })
+    doc.setFontSize(26); doc.setFont('helvetica', 'bold'); doc.setTextColor(...azul)
+    doc.text(String(totalProyectos), 14 + col1W / 2, kpiY + 18, { align: 'center' })
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100)
+    doc.text(`Avance prom. ${avanceProm}%`, 14 + col1W / 2, kpiY + 25, { align: 'center' })
+
+    // Barra de avance prom dentro del KPI total
+    const barX = 14 + 6; const barW = col1W - 12; const barY = kpiY + 27
+    doc.setFillColor(220, 220, 220); doc.rect(barX, barY, barW, 2, 'F')
+    doc.setFillColor(...azul); doc.rect(barX, barY, barW * avanceProm / 100, 2, 'F')
+
+    // — KPI 2: Por Fondo —
+    const x2 = 14 + col1W + gap
+    doc.setFillColor(245, 247, 252)
+    doc.roundedRect(x2, kpiY, col2W, kpiH, 2, 2, 'F')
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100)
+    doc.text('POR FONDO', x2 + 6, kpiY + 6)
+    const fondosKpi = FONDOS_GRANDES
+      .map(f => ({ label: f, count: proyectosFiltrados.filter(p => p.financiador === f).length, color: FONDOS_GRANDES_COLORES[f] }))
+      .filter(x => x.count > 0)
+    fondosKpi.forEach(({ label, count, color }, idx) => {
+      const fy = kpiY + 10 + idx * 5
+      if (fy + 4 > kpiY + kpiH) return
+      // dot color
+      const rgb = hexToRgb(color)
+      doc.setFillColor(...rgb); doc.circle(x2 + 8, fy + 1, 1.2, 'F')
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60)
+      doc.text(label, x2 + 12, fy + 2)
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(...azul)
+      doc.text(String(count), x2 + col2W - 8, fy + 2, { align: 'right' })
+      // mini barra
+      const bw = col2W - 30
+      doc.setFillColor(220, 220, 220); doc.rect(x2 + 12, fy + 3, bw, 1, 'F')
+      doc.setFillColor(...rgb); doc.rect(x2 + 12, fy + 3, bw * count / (totalProyectos || 1), 1, 'F')
     })
 
-    // Tabla
-    const cols = ['N°', 'Proyecto', 'Financiador', 'Fondo', 'Estado', 'Prioridad', 'Avance', 'Encargado', 'Ubicación']
-    const rows = proyectosFiltrados.map((p, i) => [
+    // — KPI 3: Por Prioridad —
+    const x3 = x2 + col2W + gap
+    doc.setFillColor(245, 247, 252)
+    doc.roundedRect(x3, kpiY, col3W, kpiH, 2, 2, 'F')
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100)
+    doc.text('POR PRIORIDAD', x3 + 6, kpiY + 6)
+    const prioColors = { Alta: [239, 68, 68], Media: [245, 158, 11], Baja: [34, 197, 94] }
+    ;['Alta', 'Media', 'Baja'].forEach((pr, idx) => {
+      const cnt = proyectosFiltrados.filter(p => p.prioridad === pr).length
+      const fy = kpiY + 10 + idx * 6
+      const rgb = prioColors[pr]
+      doc.setFillColor(...rgb); doc.circle(x3 + 8, fy + 1, 1.2, 'F')
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60)
+      doc.text(pr, x3 + 12, fy + 2)
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(...azul)
+      doc.text(String(cnt), x3 + col3W - 8, fy + 2, { align: 'right' })
+      const bw = col3W - 30
+      doc.setFillColor(220, 220, 220); doc.rect(x3 + 12, fy + 3, bw, 1, 'F')
+      doc.setFillColor(...rgb); doc.rect(x3 + 12, fy + 3, bw * cnt / (totalProyectos || 1), 1, 'F')
+    })
+
+    // ── Tabla ──
+    const cols = ['N°', 'Proyecto', 'Financiador', 'Fondo / Tipo', 'Estado', 'Prioridad', 'Avance', 'Encargado', 'Ubicación']
+    const rows = proyectosOrdenados.map((p, i) => [
       i + 1,
       p.nombre || '—',
       p.financiador || '—',
-      p.fondo || '—',
+      p.financiador === 'Otro' ? (p.fondo || '—') : (p.fondo || '—'),
       p.estado || '—',
       p.prioridad || '—',
       `${p.avance ?? 0}%`,
       p.encargado || '—',
-      p.ubicacion ? p.ubicacion.substring(0, 22) : '—',
+      p.ubicacion ? p.ubicacion.substring(0, 24) : '—',
     ])
 
     doc.autoTable({
       head: [cols],
       body: rows,
-      startY: 44,
+      startY: kpiY + kpiH + 4,
       margin: { left: 14, right: 14 },
-      styles: { fontSize: 8, cellPadding: 2.5, overflow: 'ellipsize' },
-      headStyles: { fillColor: azul, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      styles: { fontSize: 7.5, cellPadding: 2.2, overflow: 'ellipsize' },
+      headStyles: { fillColor: azul, textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
       alternateRowStyles: { fillColor: [245, 248, 252] },
       columnStyles: {
         0: { cellWidth: 8 },
-        1: { cellWidth: 45 },
-        2: { cellWidth: 28 },
-        3: { cellWidth: 22 },
-        4: { cellWidth: 26 },
-        5: { cellWidth: 18 },
-        6: { cellWidth: 14 },
+        1: { cellWidth: 44 },
+        2: { cellWidth: 26 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 17 },
+        6: { cellWidth: 13 },
         7: { cellWidth: 22 },
         8: { cellWidth: 'auto' },
       },
     })
 
-    // Footer en cada página
+    // ── Footer en cada página ──
     const pageCount = doc.internal.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i)
       doc.setFillColor(...azul)
-      doc.rect(0, doc.internal.pageSize.getHeight() - 8, W, 8, 'F')
-      doc.setFontSize(7)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(255, 255, 255)
-      doc.text('SECPLAN — Municipalidad de Molina', 14, doc.internal.pageSize.getHeight() - 3)
-      doc.text(`Página ${i} de ${pageCount}`, W - 14, doc.internal.pageSize.getHeight() - 3, { align: 'right' })
+      doc.rect(0, H - 8, W, 8, 'F')
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(255, 255, 255)
+      doc.text('SECPLAN — Municipalidad de Molina', 14, H - 3)
+      doc.text(`Página ${i} de ${pageCount}`, W - 14, H - 3, { align: 'right' })
     }
 
     doc.save(`SECPLAN_Cartera_${fecha.replace(/\//g, '-')}.pdf`)
