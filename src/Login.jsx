@@ -28,11 +28,20 @@ export default function Login() {
 
   // Detectar si viene del link de reset en el email
   useEffect(() => {
+    // Método 1: listener de evento Supabase (más confiable)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setMostrarLogin(true)
+        setVista('reset')
+      }
+    })
+    // Método 2: fallback por hash en URL
     const hash = window.location.hash
     if (hash.includes('type=recovery')) {
       setMostrarLogin(true)
       setVista('reset')
     }
+    return () => subscription.unsubscribe()
   }, [])
 
   // Slideshow automático cada 5 segundos

@@ -349,7 +349,14 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSesion(session))
-    supabase.auth.onAuthStateChange((_e, s) => setSesion(s))
+    supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // No iniciar sesión — dejar que Login maneje el reset
+        setSesion(null)
+      } else {
+        setSesion(s)
+      }
+    })
   }, [])
 
   useEffect(() => {
