@@ -10,7 +10,7 @@ const FOTOS = [
   '/molina_6.jpg',
 ]
 
-export default function Login() {
+export default function Login({ mostrarReset = false, onResetDone = () => {} }) {
   const [email,        setEmail]        = useState('')
   const [password,     setPassword]     = useState('')
   const [error,        setError]        = useState('')
@@ -28,7 +28,12 @@ export default function Login() {
 
   // Detectar si viene del link de reset en el email
   useEffect(() => {
-    // Método 1: listener de evento Supabase (más confiable)
+    // Por prop desde App.jsx (más confiable)
+    if (mostrarReset) {
+      setMostrarLogin(true)
+      setVista('reset')
+    }
+    // Método 1: listener de evento Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setMostrarLogin(true)
@@ -42,7 +47,7 @@ export default function Login() {
       setVista('reset')
     }
     return () => subscription.unsubscribe()
-  }, [])
+  }, [mostrarReset])
 
   // Slideshow automático cada 5 segundos
   useEffect(() => {
@@ -102,6 +107,7 @@ export default function Login() {
       setVista('login')
       setNuevaPassword('')
       setConfirmarPassword('')
+      onResetDone()
       // Limpiar hash de la URL
       window.history.replaceState(null, '', window.location.pathname)
     }

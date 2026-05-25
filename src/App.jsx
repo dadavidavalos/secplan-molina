@@ -338,7 +338,8 @@ export default function App() {
   const [proyectoEditando, setProyectoEditando] = useState(null)
   const [proyectoDetalle,  setProyectoDetalle]  = useState(null)
   const [sidebarAbierto,   setSidebarAbierto]   = useState(true)
-  const [menuExportar,     setMenuExportar]     = useState(false)
+  const [menuExportar,        setMenuExportar]        = useState(false)
+  const [mostrarResetPassword, setMostrarResetPassword] = useState(false)
 
   useEffect(() => {
     if (!menuExportar) return
@@ -348,11 +349,27 @@ export default function App() {
   }, [menuExportar])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSesion(session))
+    // Si la URL tiene token de recovery, mostrar formulario reset
+    const hash = window.location.hash
+    if (hash.includes('type=recovery') || hash.includes('error_code=otp')) {
+      setMostrarResetPassword(true)
+    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Si hay sesión pero venimos de recovery, no mostrar dashboard
+      if (hash.includes('type=recovery')) {
+        setSesion(null)
+        setMostrarResetPassword(true)
+      } else {
+        setSesion(session)
+      }
+    })
     supabase.auth.onAuthStateChange((event, s) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // No iniciar sesión — dejar que Login maneje el reset
         setSesion(null)
+        setMostrarResetPassword(true)
+      } else if (event === 'SIGNED_IN' && window.location.hash.includes('type=recovery')) {
+        setSesion(null)
+        setMostrarResetPassword(true)
       } else {
         setSesion(s)
       }
@@ -363,7 +380,7 @@ export default function App() {
     if (sesion) { cargarProyectos(); cargarUsuarioData() }
   }, [sesion])
 
-  if (!sesion) return <Login />
+  if (!sesion) return <Login mostrarReset={mostrarResetPassword} onResetDone={() => setMostrarResetPassword(false)} />
 
   async function cargarUsuarioData() {
     const { data } = await supabase.from('Usuarios').select('*').eq('id', sesion.user.id).single()
@@ -1107,5 +1124,4 @@ export default function App() {
       )}
     </div>
   )
-}/ /   0 5 / 2 5 / 2 0 2 6   1 1 : 4 3 : 5 5  
- 
+}
