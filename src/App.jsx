@@ -340,6 +340,11 @@ export default function App() {
   const [sidebarAbierto,   setSidebarAbierto]   = useState(true)
   const [menuExportar,        setMenuExportar]        = useState(false)
   const [mostrarResetPassword, setMostrarResetPassword] = useState(false)
+  const [mostrarCambiarClave,  setMostrarCambiarClave]  = useState(false)
+  const [nuevaClave,           setNuevaClave]           = useState('')
+  const [confirmarClave,       setConfirmarClave]       = useState('')
+  const [mensajeClave,         setMensajeClave]         = useState('')
+  const [guardandoClave,       setGuardandoClave]       = useState(false)
 
   useEffect(() => {
     if (!menuExportar) return
@@ -683,6 +688,24 @@ export default function App() {
     doc.save(`SECPLAN_Cartera_${fecha.replace(/\//g, '-')}.pdf`)
   }
 
+  async function guardarNuevaClave() {
+    if (!nuevaClave || !confirmarClave) { setMensajeClave('Completa ambos campos'); return }
+    if (nuevaClave.length < 6) { setMensajeClave('Mínimo 6 caracteres'); return }
+    if (nuevaClave !== confirmarClave) { setMensajeClave('Las contraseñas no coinciden'); return }
+    setGuardandoClave(true)
+    setMensajeClave('')
+    const { error } = await supabase.auth.updateUser({ password: nuevaClave })
+    if (error) {
+      setMensajeClave('Error al cambiar la contraseña')
+    } else {
+      setMensajeClave('✓ Contraseña actualizada correctamente')
+      setNuevaClave('')
+      setConfirmarClave('')
+      setTimeout(() => { setMostrarCambiarClave(false); setMensajeClave('') }, 2000)
+    }
+    setGuardandoClave(false)
+  }
+
   const esAdmin = usuarioData?.rol === 'admin'
   const prioridades = ['Todas', 'Alta', 'Media', 'Baja']
 
@@ -825,7 +848,7 @@ export default function App() {
               <p className="text-xs text-gray-400 capitalize">{usuarioData?.rol || 'usuario'}</p>
             </div>
             <div className="flex flex-col gap-1 flex-shrink-0">
-              <button onClick={() => setMostrarResetPassword(true)}
+              <button onClick={() => setMostrarCambiarClave(true)}
                 className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors text-left">
                 Cambiar clave
               </button>
@@ -1045,6 +1068,50 @@ export default function App() {
           onCerrar={() => setProyectoEditando(null)} />
       )}
       {mostrarAdmin && <AdminPanel onCerrar={() => setMostrarAdmin(false)} />}
+
+      {/* ── MODAL CAMBIAR CONTRASEÑA ── */}
+      {mostrarCambiarClave && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(10,20,50,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) { setMostrarCambiarClave(false); setMensajeClave(''); setNuevaClave(''); setConfirmarClave('') }}}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 pt-6 pb-4 flex justify-between items-center"
+              style={{ background: 'linear-gradient(135deg, #0F2554 0%, #1B3F8B 100%)' }}>
+              <div>
+                <h2 className="text-white font-bold text-base">Cambiar contraseña</h2>
+                <p className="text-blue-200 text-xs mt-0.5">{sesion.user.email}</p>
+              </div>
+              <button onClick={() => { setMostrarCambiarClave(false); setMensajeClave(''); setNuevaClave(''); setConfirmarClave('') }}
+                className="text-white/60 hover:text-white text-xl leading-none">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nueva contraseña</label>
+                <input type="password" placeholder="Mínimo 6 caracteres" value={nuevaClave}
+                  onChange={e => setNuevaClave(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 transition-all bg-gray-50" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Confirmar contraseña</label>
+                <input type="password" placeholder="Repite la contraseña" value={confirmarClave}
+                  onChange={e => setConfirmarClave(e.target.value)}
+                  onKeyDown={async e => { if (e.key === 'Enter') await guardarNuevaClave() }}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 transition-all bg-gray-50" />
+              </div>
+              {mensajeClave && (
+                <p className={`text-xs px-3 py-2 rounded-xl border ${mensajeClave.startsWith('✓') ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-500 border-red-100'}`}>
+                  {mensajeClave}
+                </p>
+              )}
+              <button onClick={guardarNuevaClave} disabled={guardandoClave}
+                className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #0F2554 0%, #1B3F8B 100%)' }}>
+                {guardandoClave ? 'Guardando...' : 'Guardar nueva contraseña'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DETALLE */}
       {proyectoDetalle && (
