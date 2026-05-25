@@ -11,13 +11,29 @@ const FOTOS = [
 ]
 
 export default function Login() {
-  const [email,      setEmail]      = useState('')
-  const [password,   setPassword]   = useState('')
-  const [esRegistro, setEsRegistro] = useState(false)
-  const [error,      setError]      = useState('')
-  const [cargando,   setCargando]   = useState(false)
+  const [email,        setEmail]        = useState('')
+  const [password,     setPassword]     = useState('')
+  const [error,        setError]        = useState('')
+  const [cargando,     setCargando]     = useState(false)
   const [mostrarLogin, setMostrarLogin] = useState(false)
   const [fotoActual,   setFotoActual]   = useState(0)
+
+  // Vista: 'login' | 'olvide' | 'reset'
+  const [vista, setVista] = useState('login')
+  const [mensajeOk, setMensajeOk] = useState('')
+
+  // Para cambio de contraseña (cuando llega del email)
+  const [nuevaPassword,    setNuevaPassword]    = useState('')
+  const [confirmarPassword, setConfirmarPassword] = useState('')
+
+  // Detectar si viene del link de reset en el email
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('type=recovery')) {
+      setMostrarLogin(true)
+      setVista('reset')
+    }
+  }, [])
 
   // Slideshow automático cada 5 segundos
   useEffect(() => {
@@ -27,18 +43,66 @@ export default function Login() {
     return () => clearInterval(t)
   }, [])
 
-  async function handleSubmit() {
+  async function handleLogin() {
     if (!email || !password) return
     setCargando(true)
     setError('')
-    let result
-    if (esRegistro) {
-      result = await supabase.auth.signUp({ email, password })
-    } else {
-      result = await supabase.auth.signInWithPassword({ email, password })
-    }
-    if (result.error) setError(result.error.message)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setError('Correo o contraseña incorrectos')
     setCargando(false)
+  }
+
+  async function handleOlvidePassword() {
+    if (!email) {
+      setError('Ingresa tu correo primero')
+      return
+    }
+    setCargando(true)
+    setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}`,
+    })
+    if (error) {
+      setError('Error al enviar el correo. Verifica que el email sea correcto.')
+    } else {
+      setMensajeOk('✓ Te enviamos un correo con el link para restablecer tu contraseña. Revisa tu bandeja de entrada.')
+    }
+    setCargando(false)
+  }
+
+  async function handleResetPassword() {
+    if (!nuevaPassword || !confirmarPassword) {
+      setError('Completa ambos campos')
+      return
+    }
+    if (nuevaPassword.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+    if (nuevaPassword !== confirmarPassword) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+    setCargando(true)
+    setError('')
+    const { error } = await supabase.auth.updateUser({ password: nuevaPassword })
+    if (error) {
+      setError('Error al cambiar la contraseña. El link puede haber expirado.')
+    } else {
+      setMensajeOk('✓ Contraseña actualizada correctamente. Ya puedes iniciar sesión.')
+      setVista('login')
+      setNuevaPassword('')
+      setConfirmarPassword('')
+      // Limpiar hash de la URL
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+    setCargando(false)
+  }
+
+  function volverAlLogin() {
+    setVista('login')
+    setError('')
+    setMensajeOk('')
   }
 
   return (
@@ -57,21 +121,19 @@ export default function Login() {
           }} />
       ))}
 
-      {/* Overlay oscuro sobre las fotos */}
+      {/* Overlay oscuro */}
       <div className="absolute inset-0 z-10"
         style={{ background: 'linear-gradient(135deg, rgba(15,37,84,0.75) 0%, rgba(27,63,139,0.65) 100%)' }} />
 
       {/* ── CONTENIDO BIENVENIDA ── */}
       <div className="relative z-20 flex flex-col items-center text-center px-4 w-full max-w-2xl">
 
-        {/* Logo SECPLAN */}
         <div className="mb-6">
           <img src="/imagen_transparente_molina2.png" alt="SECPLAN Molina"
             style={{ height: 100, objectFit: 'contain', filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))' }}
             onError={e => e.target.style.display = 'none'} />
         </div>
 
-        {/* Título grande en media luna / arco */}
         <div className="relative mb-2">
           <h1 className="text-white font-black tracking-widest uppercase"
             style={{
@@ -82,7 +144,6 @@ export default function Login() {
             }}>
             SECPLAN
           </h1>
-          {/* Línea decorativa debajo */}
           <div className="mx-auto mt-3 rounded-full"
             style={{ height: 4, width: 80, background: '#8DC63F' }} />
         </div>
@@ -96,7 +157,6 @@ export default function Login() {
           Cartera de Proyectos
         </p>
 
-        {/* Botón de acceso */}
         {!mostrarLogin && (
           <button
             onClick={() => setMostrarLogin(true)}
@@ -110,7 +170,6 @@ export default function Login() {
           </button>
         )}
 
-        {/* Indicadores slideshow */}
         <div className="flex gap-2 mt-8">
           {FOTOS.map((_, i) => (
             <button key={i} onClick={() => setFotoActual(i)}
@@ -124,11 +183,11 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ── MODAL LOGIN ── */}
+      {/* ── MODAL ── */}
       {mostrarLogin && (
         <div className="fixed inset-0 z-30 flex items-center justify-center p-4"
           style={{ background: 'rgba(10,20,50,0.7)', backdropFilter: 'blur(6px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setMostrarLogin(false) }}>
+          onClick={e => { if (e.target === e.currentTarget && vista !== 'reset') setMostrarLogin(false) }}>
 
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
             style={{ animation: 'slideUp 0.3s ease' }}>
@@ -140,59 +199,158 @@ export default function Login() {
                 style={{ height: 56, objectFit: 'contain', margin: '0 auto 12px' }}
                 onError={e => e.target.style.display = 'none'} />
               <h2 className="text-white font-black text-lg tracking-wide">
-                {esRegistro ? 'Crear cuenta' : 'Iniciar sesión'}
+                {vista === 'login'  && 'Iniciar sesión'}
+                {vista === 'olvide' && 'Restablecer contraseña'}
+                {vista === 'reset'  && 'Nueva contraseña'}
               </h2>
               <p className="text-blue-200 text-xs mt-1">SECPLAN Molina</p>
             </div>
 
-            {/* Formulario */}
-            <div className="px-8 py-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                  Email
-                </label>
-                <input type="email" placeholder="tu@email.com" value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
-                  style={{ background: '#F9FAFB' }}
-                  onFocus={e => e.target.style.borderColor = '#1B3F8B'}
-                  onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                  Contraseña
-                </label>
-                <input type="password" placeholder="Mínimo 6 caracteres" value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
-                  style={{ background: '#F9FAFB' }}
-                  onFocus={e => e.target.style.borderColor = '#1B3F8B'}
-                  onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
-              </div>
+            {/* ── VISTA: LOGIN ── */}
+            {vista === 'login' && (
+              <div className="px-8 py-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
+                  <input type="email" placeholder="tu@email.com" value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+                    style={{ background: '#F9FAFB' }}
+                    onFocus={e => e.target.style.borderColor = '#1B3F8B'}
+                    onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Contraseña</label>
+                  <input type="password" placeholder="Mínimo 6 caracteres" value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+                    style={{ background: '#F9FAFB' }}
+                    onFocus={e => e.target.style.borderColor = '#1B3F8B'}
+                    onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                </div>
 
-              {error && (
-                <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-xl border border-red-100">
-                  {error}
+                {/* Link olvidé contraseña */}
+                <div className="text-right">
+                  <button onClick={() => { setVista('olvide'); setError(''); setMensajeOk('') }}
+                    className="text-xs text-blue-600 hover:underline">
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
+
+                {mensajeOk && (
+                  <p className="text-green-600 text-xs bg-green-50 px-3 py-2 rounded-xl border border-green-100">
+                    {mensajeOk}
+                  </p>
+                )}
+                {error && (
+                  <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-xl border border-red-100">
+                    {error}
+                  </p>
+                )}
+
+                <button onClick={handleLogin} disabled={cargando}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #0F2554 0%, #1B3F8B 100%)' }}>
+                  {cargando ? 'Cargando...' : 'Entrar'}
+                </button>
+
+                <p className="text-center text-xs text-gray-400">
+                  Acceso solo para personal autorizado de SECPLAN Molina
                 </p>
-              )}
+              </div>
+            )}
 
-              <button onClick={handleSubmit} disabled={cargando}
-                className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #0F2554 0%, #1B3F8B 100%)' }}>
-                {cargando ? 'Cargando...' : esRegistro ? 'Crear cuenta' : 'Entrar'}
-              </button>
+            {/* ── VISTA: OLVIDÉ CONTRASEÑA ── */}
+            {vista === 'olvide' && (
+              <div className="px-8 py-6 space-y-4">
+                <p className="text-sm text-gray-500 text-center">
+                  Ingresa tu correo y te enviaremos un link para restablecer tu contraseña.
+                </p>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
+                  <input type="email" placeholder="tu@email.com" value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleOlvidePassword()}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+                    style={{ background: '#F9FAFB' }}
+                    onFocus={e => e.target.style.borderColor = '#1B3F8B'}
+                    onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                </div>
 
-              <p className="text-center text-xs text-gray-400">
-                Acceso solo para personal autorizado de SECPLAN Molina
-              </p>
-            </div>
+                {mensajeOk && (
+                  <p className="text-green-600 text-xs bg-green-50 px-3 py-2 rounded-xl border border-green-100">
+                    {mensajeOk}
+                  </p>
+                )}
+                {error && (
+                  <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-xl border border-red-100">
+                    {error}
+                  </p>
+                )}
+
+                <button onClick={handleOlvidePassword} disabled={cargando || !!mensajeOk}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #0F2554 0%, #1B3F8B 100%)' }}>
+                  {cargando ? 'Enviando...' : 'Enviar correo de restablecimiento'}
+                </button>
+
+                <button onClick={volverAlLogin}
+                  className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                  ← Volver al inicio de sesión
+                </button>
+              </div>
+            )}
+
+            {/* ── VISTA: RESET (viene del email) ── */}
+            {vista === 'reset' && (
+              <div className="px-8 py-6 space-y-4">
+                <p className="text-sm text-gray-500 text-center">
+                  Ingresa tu nueva contraseña.
+                </p>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nueva contraseña</label>
+                  <input type="password" placeholder="Mínimo 6 caracteres" value={nuevaPassword}
+                    onChange={e => setNuevaPassword(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+                    style={{ background: '#F9FAFB' }}
+                    onFocus={e => e.target.style.borderColor = '#1B3F8B'}
+                    onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Confirmar contraseña</label>
+                  <input type="password" placeholder="Repite la contraseña" value={confirmarPassword}
+                    onChange={e => setConfirmarPassword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleResetPassword()}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+                    style={{ background: '#F9FAFB' }}
+                    onFocus={e => e.target.style.borderColor = '#1B3F8B'}
+                    onBlur={e => e.target.style.borderColor = '#E5E7EB'} />
+                </div>
+
+                {mensajeOk && (
+                  <p className="text-green-600 text-xs bg-green-50 px-3 py-2 rounded-xl border border-green-100">
+                    {mensajeOk}
+                  </p>
+                )}
+                {error && (
+                  <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-xl border border-red-100">
+                    {error}
+                  </p>
+                )}
+
+                <button onClick={handleResetPassword} disabled={cargando}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #0F2554 0%, #1B3F8B 100%)' }}>
+                  {cargando ? 'Guardando...' : 'Guardar nueva contraseña'}
+                </button>
+              </div>
+            )}
+
           </div>
         </div>
       )}
 
-      {/* Animación slideUp */}
       <style>{`
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(30px) scale(0.97); }
