@@ -349,29 +349,31 @@ export default function App() {
   }, [menuExportar])
 
   useEffect(() => {
-    // Si la URL tiene token de recovery, mostrar formulario reset
+    // Detectar recovery en hash O en query params (distintos formatos de Supabase)
     const hash = window.location.hash
-    if (hash.includes('type=recovery') || hash.includes('error_code=otp')) {
-      setMostrarResetPassword(true)
-    }
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // Si hay sesión pero venimos de recovery, no mostrar dashboard
-      if (hash.includes('type=recovery')) {
-        setSesion(null)
-        setMostrarResetPassword(true)
-      } else {
-        setSesion(session)
-      }
-    })
+    const search = window.location.search
+    const isRecovery = hash.includes('type=recovery') || 
+                       search.includes('type=recovery') ||
+                       hash.includes('access_token') && hash.includes('recovery')
+
     supabase.auth.onAuthStateChange((event, s) => {
       if (event === 'PASSWORD_RECOVERY') {
         setSesion(null)
         setMostrarResetPassword(true)
-      } else if (event === 'SIGNED_IN' && window.location.hash.includes('type=recovery')) {
+      } else if (event === 'SIGNED_IN' && isRecovery) {
         setSesion(null)
         setMostrarResetPassword(true)
       } else {
         setSesion(s)
+      }
+    })
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isRecovery) {
+        setSesion(null)
+        setMostrarResetPassword(true)
+      } else {
+        setSesion(session)
       }
     })
   }, [])
@@ -822,10 +824,16 @@ export default function App() {
               <p className="text-xs font-semibold text-gray-800 truncate">{usuarioData?.nombre || sesion.user.email}</p>
               <p className="text-xs text-gray-400 capitalize">{usuarioData?.rol || 'usuario'}</p>
             </div>
-            <button onClick={() => supabase.auth.signOut()}
-              className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
-              Salir
-            </button>
+            <div className="flex flex-col gap-1 flex-shrink-0">
+              <button onClick={() => setMostrarResetPassword(true)}
+                className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors text-left">
+                Cambiar clave
+              </button>
+              <button onClick={() => supabase.auth.signOut()}
+                className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors text-left">
+                Salir
+              </button>
+            </div>
           </div>
         </div>
       </aside>
