@@ -243,7 +243,9 @@ function FilaTabla({ p, onVerDetalle, onEditar, onEliminar }) {
       {/* Fondo */}
       <td className="py-3 px-4">
         <div className="flex flex-col gap-0.5">
-          <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-bold text-white w-fit" style={{ background: fc.bg }}>{fc.label}</span>
+          <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-bold text-white w-fit" style={{ background: fc.bg }}>
+            {p.financiador === 'Otro' && p.fondo ? p.fondo : fc.label}
+          </span>
           {p.financiador && <span className="text-xs text-gray-400" style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.financiador}</span>}
         </div>
       </td>
