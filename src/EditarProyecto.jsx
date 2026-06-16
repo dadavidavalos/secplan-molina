@@ -219,7 +219,7 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -272,12 +272,12 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
               </Campo>
 
               <Campo label="Nombre del proyecto *">
-                <input className="input text-base py-3" placeholder="Ej: Construcción sede social Población Las Rosas"
+                <input className="input" placeholder="Ej: Construcción sede social Población Las Rosas"
                   value={form.nombre} onChange={(e) => setF("nombre", e.target.value)} />
               </Campo>
 
               <Campo label="Descripción">
-                <textarea className="input resize-none text-base" rows={5} placeholder="Descripción breve del proyecto"
+                <textarea className="input resize-none" rows={3} placeholder="Descripción breve del proyecto"
                   value={form.descripcion} onChange={(e) => setF("descripcion", e.target.value)} />
               </Campo>
 
