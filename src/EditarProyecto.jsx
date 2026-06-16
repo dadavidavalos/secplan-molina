@@ -272,12 +272,12 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
               </Campo>
 
               <Campo label="Nombre del proyecto *">
-                <input className="input" placeholder="Ej: Construcción sede social Población Las Rosas"
+                <input className="input w-full block" placeholder="Ej: Construcción sede social Población Las Rosas"
                   value={form.nombre} onChange={(e) => setF("nombre", e.target.value)} />
               </Campo>
 
               <Campo label="Descripción">
-                <textarea className="input resize-none" rows={3} placeholder="Descripción breve del proyecto"
+                <textarea className="input w-full block resize-none" rows={3} placeholder="Descripción breve del proyecto"
                   value={form.descripcion} onChange={(e) => setF("descripcion", e.target.value)} />
               </Campo>
 
@@ -480,7 +480,7 @@ export default function EditarProyecto({ proyecto, usuario, onGuardado, onCerrar
 
 function Campo({ label, children }) {
   return (
-    <div>
+    <div className="w-full">
       <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
       {children}
     </div>

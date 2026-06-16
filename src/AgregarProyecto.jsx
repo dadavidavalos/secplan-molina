@@ -207,11 +207,11 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
               </Campo>
 
               <Campo label="Nombre del proyecto *">
-                <input className="input" placeholder="Ej: Construcción sede social Población Las Rosas" value={proyecto.nombre} onChange={(e) => setP("nombre", e.target.value)} />
+                <input className="input w-full block" placeholder="Ej: Construcción sede social Población Las Rosas" value={proyecto.nombre} onChange={(e) => setP("nombre", e.target.value)} />
               </Campo>
 
               <Campo label="Descripción">
-                <textarea className="input min-h-[80px] resize-none" placeholder="Describe brevemente el proyecto..." value={proyecto.descripcion} onChange={(e) => setP("descripcion", e.target.value)} />
+                <textarea className="input w-full block min-h-[80px] resize-none" placeholder="Describe brevemente el proyecto..." value={proyecto.descripcion} onChange={(e) => setP("descripcion", e.target.value)} />
               </Campo>
 
               <Campo label="Financiador y tipo de fondo">
@@ -417,7 +417,7 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
 
 function Campo({ label, children }) {
   return (
-    <div>
+    <div className="w-full">
       <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
       {children}
     </div>
