@@ -11,7 +11,7 @@ export default function UbicacionMapa({ value, onChange }) {
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">📍</span>
         <input
-          className="input pl-8 pr-24"
+          className="input pl-8 pr-24 text-base py-3"
           placeholder="Ej: Av. O'Higgins 450, Molina, Maule"
           value={value || ""}
           onChange={(e) => onChange?.(e.target.value, null)}

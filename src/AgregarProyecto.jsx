@@ -155,7 +155,7 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -207,11 +207,11 @@ export default function AgregarProyecto({ onClose, onGuardado }) {
               </Campo>
 
               <Campo label="Nombre del proyecto *">
-                <input className="input" placeholder="Ej: Construcción sede social Población Las Rosas" value={proyecto.nombre} onChange={(e) => setP("nombre", e.target.value)} />
+                <input className="input text-base py-3" placeholder="Ej: Construcción sede social Población Las Rosas" value={proyecto.nombre} onChange={(e) => setP("nombre", e.target.value)} />
               </Campo>
 
               <Campo label="Descripción">
-                <textarea className="input min-h-[80px] resize-none" placeholder="Describe brevemente el proyecto..." value={proyecto.descripcion} onChange={(e) => setP("descripcion", e.target.value)} />
+                <textarea className="input min-h-[120px] text-base resize-none" placeholder="Describe brevemente el proyecto..." value={proyecto.descripcion} onChange={(e) => setP("descripcion", e.target.value)} />
               </Campo>
 
               <Campo label="Financiador y tipo de fondo">
